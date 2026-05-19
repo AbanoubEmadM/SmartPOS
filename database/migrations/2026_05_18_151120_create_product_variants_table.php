@@ -17,7 +17,7 @@ return new class extends Migration
             $table->integer('price_cents');
             $table->integer('stock');
             $table->string('color');
-            $table->string('sku')->nullable();
+            $table->string('sku')->unique();
             $table->string('size');
             $table->unsignedBigInteger('product_id');
             $table->foreign('product_id')->references('id')->on('products')
