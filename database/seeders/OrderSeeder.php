@@ -18,6 +18,8 @@ class OrderSeeder extends Seeder
         $variants = ProductVariant::all();
 
         if ($customers->isEmpty() || $employees->isEmpty() || $variants->isEmpty()) {
+            $this->command?->warn('OrderSeeder skipped: seed customers, employees, and product variants first.');
+
             return;
         }
 

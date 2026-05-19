@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('product_name');
             $table->string('product_desc');
             $table->string('product_img');
-            $table->foreignId('category_id')->constrained();
+            $table->foreignId('category_id')->constrained()->cascadeOnDelete();
             $table->boolean('is_available');
             $table->timestamps();
             $table->softDeletes();
