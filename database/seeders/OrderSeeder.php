@@ -7,7 +7,6 @@ use App\Models\Employee;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ProductVariant;
-use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class OrderSeeder extends Seeder
