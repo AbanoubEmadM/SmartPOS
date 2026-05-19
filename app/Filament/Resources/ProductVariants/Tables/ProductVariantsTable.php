@@ -14,11 +14,11 @@ class ProductVariantsTable
     {
         return $table
             ->columns([
-                TextColumn::make('product_name')
-                    ->searchable(),
-                TextColumn::make('price_cents')
-                    ->numeric()
-                    ->sortable(),
+//                TextColumn::make('product_name')
+//                    ->searchable(),
+//                TextColumn::make('price_cents')
+//                    ->numeric()
+//                    ->sortable(),
                 TextColumn::make('stock')
                     ->numeric()
                     ->sortable(),
