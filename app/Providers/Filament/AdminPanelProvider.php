@@ -28,15 +28,25 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->registration()
             ->colors([
                 'primary' => Color::Amber,
             ])
+            ->authGuard('web')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
-                Dashboard::class,
+                \App\Filament\Pages\Dashboard::class,
             ])
+            ->homeUrl(function () {
+                /** @var \App\Models\Employee $user */
+                $user = auth()->user();
+
+                if ($user && $user->role === 'cashier') {
+                    return '/admin/pos-terminal'; // الكاشير يروح شاشة البيع عل طول
+                }
+
+                return '/admin'; // الأدمن يروح الـ Dashboard العادية
+            })
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 AccountWidget::class,
