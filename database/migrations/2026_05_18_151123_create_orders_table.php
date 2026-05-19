@@ -15,8 +15,6 @@ return new class extends Migration
             $table->id();
             $table->integer('total_price_cents');
             $table->enum('payment_method', ['cash', 'card']);
-//            $table->foreignId('customer_id')->constrained('customers');
-//            $table->foreignId('employee_id')->constrained('employees');
             $table->timestamps();
         });
     }

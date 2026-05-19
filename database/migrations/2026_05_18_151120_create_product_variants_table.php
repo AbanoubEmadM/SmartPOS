@@ -19,7 +19,9 @@ return new class extends Migration
             $table->string('color');
             $table->string('sku')->nullable();
             $table->string('size');
-            $table->foreignId('product_id')->constrained()->cascadeOnDelete();
+            $table->unsignedBigInteger('product_id');
+            $table->foreign('product_id')->references('id')->on('products')
+                ->cascadeOnDelete();
             $table->timestamps();
             $table->softDeletes();
         });

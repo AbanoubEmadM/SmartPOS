@@ -17,7 +17,7 @@ return new class extends Migration
             $table->integer('current_price_cents');
             $table->integer('quantity');
             $table->foreignId('order_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('variant_id')->constrained('product_variants');
+            $table->foreignId('variant_id')->constrained('product_variants')->cascadeOnDelete();
             $table->timestamps();
         });
     }
