@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -13,7 +14,7 @@ class OrderSeeder extends Seeder
 {
     public function run(): void
     {
-        $customers = User::all();
+        $customers = Customer::all();
         $employees = Employee::all();
         $variants = ProductVariant::all();
 

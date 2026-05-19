@@ -13,7 +13,7 @@ class Order extends Model
     use HasFactory;
     protected $guarded= ['order_id'];
     public function customer(): BelongsTo {
-        return $this->belongsTo(User::class, 'customer_id');
+        return $this->belongsTo(Customer::class, 'customer_id');
     }
     public function items(): HasMany {
         return $this->hasMany(OrderItem::class, 'order_id');
