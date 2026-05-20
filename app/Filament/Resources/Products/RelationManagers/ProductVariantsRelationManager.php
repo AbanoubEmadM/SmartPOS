@@ -47,6 +47,11 @@ class ProductVariantsRelationManager extends RelationManager
                     ->weight(fn (int $state) => $state === 0 ? 'bold' : 'normal'),
 
             ])
+            ->filters([
+                Tables\Filters\Filter::make('low_stock')
+                    ->label('المنتجات القريبة من النفاد')
+                    ->query(fn ($query) => $query->whereRaw('stock <= low_stock_threshold')),
+            ])
             ->headerActions([
                 \Filament\Actions\CreateAction::make()
                     ->label('إضافة مقاس/لون جديد')

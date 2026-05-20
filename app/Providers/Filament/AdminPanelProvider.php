@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\StockAlertsOverview;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -42,13 +43,14 @@ class AdminPanelProvider extends PanelProvider
                 $user = auth()->user();
 
                 if ($user && $user->role === 'cashier') {
-                    return '/admin/pos-terminal'; // الكاشير يروح شاشة البيع عل طول
+                    return '/admin/pos-terminal';
                 }
 
-                return '/admin'; // الأدمن يروح الـ Dashboard العادية
+                return '/admin';
             })
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
+                StockAlertsOverview::class,
                 AccountWidget::class,
                 FilamentInfoWidget::class,
             ])
