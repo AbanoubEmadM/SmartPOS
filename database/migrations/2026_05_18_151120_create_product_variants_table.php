@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('product_name');
             $table->integer('price_cents');
             $table->integer('stock');
+            $table->integer('low_stock_threshold')->default(5);
             $table->string('color');
             $table->string('sku')->unique();
             $table->string('size');
