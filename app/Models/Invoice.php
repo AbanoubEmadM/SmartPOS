@@ -12,7 +12,7 @@ class Invoice extends Model
     use HasFactory;
     protected $guarded = ['id'];
 
-    public function order(): BelongsTo {
-        return $this->belongsTo(Order::class);
-    }
-}
+    public function order()
+    {
+        return $this->hasOne(Order::class, 'invoice_id');
+    }}

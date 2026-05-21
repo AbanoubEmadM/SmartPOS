@@ -131,9 +131,12 @@ $checkout = function () {
             $customerId = $newCustomer->id;
         }
 
+        $invoice = \App\Models\Invoice::create();
+
         $order = Order::create([
             'employee_id'       => Auth::id() ?? 1,
             'customer_id'       => $customerId,
+            'invoice_id'        => $invoice->id,
             'payment_method'    => $this->payment_method,
             'total_price_cents' => (int) round($this->total * 100),
             'created_at'        => now(),
