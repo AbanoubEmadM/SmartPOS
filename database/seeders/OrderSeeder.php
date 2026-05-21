@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Customer;
 use App\Models\Employee;
+use App\Models\Invoice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\ProductVariant;
@@ -16,6 +17,7 @@ class OrderSeeder extends Seeder
         $customers = Customer::all();
         $employees = Employee::all();
         $variants = ProductVariant::all();
+        $invoices = Invoice::all();
 
         if ($customers->isEmpty() || $employees->isEmpty() || $variants->isEmpty()) {
             $this->command?->warn('OrderSeeder skipped: seed customers, employees, and product variants first.');
@@ -28,6 +30,7 @@ class OrderSeeder extends Seeder
                 'payment_method' => $index % 2 === 0 ? 'card' : 'cash',
                 'customer_id' => $customers->random()->id,
                 'employee_id' => $employees->random()->id,
+                'invoice_id' => $invoices->random()->id,
                 'total_price_cents' => 0,
             ]);
 

@@ -44,7 +44,7 @@ $products = computed(function () {
             $term = '%' . $this->search . '%';
             $q->where(function ($inner) use ($term) {
                 $inner->where('product_name', 'like', $term)
-                      ->orWhereHas('variants', fn ($vq) => $vq->where('sku', 'like', $term));
+                    ->orWhereHas('variants', fn ($vq) => $vq->where('sku', 'like', $term));
             });
         })
         ->with(['variants' => fn ($q) => $q->where('stock', '>', 0)])
@@ -68,7 +68,7 @@ $addToCart = function (int $variantId) {
 
         $imagePath = $variant->image_path
             ? $variant->image_path
-            : ($variant->product->image_path ? $variant->product->image_path : null);
+            : ($variant->product->product_img ? $variant->product->product_img : null);
 
         $this->cart[$variantId] = [
             'id' => $variant->id,
@@ -117,7 +117,9 @@ $checkout = function () {
     if (empty($this->cart)) return;
     if (empty(trim($this->customer_phone)) || empty(trim($this->customer_name))) return;
 
-    DB::transaction(function () {
+    $order = null;
+
+    DB::transaction(function () use (&$order) {
         $customerId = null;
         if ($this->existing_customer) {
             $customerId = $this->existing_customer->id;
@@ -149,13 +151,28 @@ $checkout = function () {
         }
     });
 
+    $order->load(['employee', 'customer', 'items.variant']);
+
+    $receiptData = [
+        'order_id'       => $order->id,
+        'date'           => $order->created_at->format('Y-m-d h:i A'),
+        'cashier_name'   => $order->employee->name ?? Auth::user()->name ?? 'الكاشير الكابتن',
+        'customer_name'  => $order->customer->name ?? 'عميل نقدي',
+        'payment_method' => $order->payment_method == 'cash' ? 'نقدي (Cash)' : 'فيزا / كارت (Card)',
+        'discount'       => number_format($this->discount, 2),
+        'total'          => number_format($this->total, 2),
+        'items'          => collect($this->cart)->values()->toArray(),
+    ];
+
+    $this->dispatch('trigger-print-receipt', receipt: $receiptData);
+
     $this->cart = []; $this->total = 0.0; $this->discount = 0.0;
     $this->customer_phone = ''; $this->customer_name = ''; $this->existing_customer = null;
     $this->payment_method = 'cash';
-    session()->flash('message', 'تم الفاتورة بنجاح! ✓');
+    session()->flash('message', 'تم الفاتورة وبدء الطباعة! ✓');
 };
 ?>
-
+<div>
 <div class="bg-[#d2d9f4] overflow-hidden h-screen w-screen flex flex-col antialiased text-[#131b2e]" dir="rtl">
     <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
@@ -168,6 +185,50 @@ $checkout = function () {
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .cart-scroll::-webkit-scrollbar { width: 6px; }
         .cart-scroll::-webkit-scrollbar-thumb { background: #c7c4d8; border-radius: 10px; }
+
+        @media screen {
+            #thermal-receipt-template {
+                display: none !important;
+            }
+        }
+
+        @media print {
+            body > * {
+                display: none !important;
+            }
+
+            #thermal-receipt-template {
+                display: block !important;
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100% !important;
+                max-width: 80mm !important;
+                padding: 10px !important;
+                margin: 0 auto !important;
+                direction: rtl !important;
+                background: white !important;
+                color: black !important;
+            }
+
+            #thermal-receipt-template table {
+                display: table !important;
+                width: 100% !important;
+            }
+            #thermal-receipt-template tr {
+                display: table-row !important;
+            }
+            #thermal-receipt-template th,
+            #thermal-receipt-template td {
+                display: table-cell !important;
+                color: black !important;
+            }
+
+            @page {
+                margin: 0;
+                size: auto;
+            }
+        }
     </style>
 
     <header class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 bg-white h-16 border-b border-[#c7c4d8] shadow-sm">
@@ -175,7 +236,7 @@ $checkout = function () {
             <div class="flex items-center gap-3 pr-4 border-l border-[#c7c4d8]">
                 <span class="material-symbols-outlined text-[#3525cd] text-[32px]">account_circle</span>
                 <div class="text-right leading-tight">
-                    <p class="text-sm font-bold text-[#131b2e]">{{ Auth::user()->name }}</p>
+                    <p class="text-sm font-bold text-[#131b2e]">{{ Auth::user()->name ?? 'مستخدم متصل' }}</p>
                 </div>
             </div>
             <div class="flex items-center gap-2 text-[#464555] text-sm bg-[#e2e7ff] px-4 py-1.5 rounded-full">
@@ -257,7 +318,6 @@ $checkout = function () {
                 @forelse($cart as $id => $item)
                     <div class="bg-white p-3.5 rounded-2xl border border-[#c7c4d8] shadow-sm flex items-center justify-between gap-3">
                         <div class="flex items-center gap-3 flex-1 min-w-0">
-
                             <div class="w-14 h-14 rounded-xl bg-[#e2e7ff] overflow-hidden flex-shrink-0 border border-gray-100 shadow-sm flex items-center justify-center">
                                 @if($item['image'])
                                     <img src="{{ asset('storage/' . $item['image']) }}" class="w-full h-full object-cover" alt="{{ $item['name'] }}">
@@ -338,8 +398,8 @@ $checkout = function () {
                     </div>
 
                     <button wire:click="checkout"
-                        @if(empty($cart) || empty(trim($customer_phone)) || empty(trim($customer_name))) disabled @endif
-                        class="flex-1 bg-[#4f46e5] hover:bg-[#3525cd] disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg font-bold text-sm">
+                            @if(empty($cart) || empty(trim($customer_phone)) || empty(trim($customer_name))) disabled @endif
+                            class="flex-1 bg-[#4f46e5] hover:bg-[#3525cd] disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg font-bold text-sm">
                         <span>إتمام وطباعة الفاتورة</span>
                         <span class="material-symbols-outlined text-xl">print</span>
                     </button>
@@ -347,4 +407,103 @@ $checkout = function () {
             </div>
         </section>
     </main>
+</div> <div id="thermal-receipt-template" class="block bg-white text-black p-4 w-[80mm] mx-auto text-sm leading-tight text-right">
+    <div class="text-center space-y-1 border-b border-dashed border-black pb-3">
+        <h1 class="text-base font-bold tracking-tight">K&H Shoes</h1>
+        <p class="text-xs text-gray-600">فاتورة بيع تبسيطية</p>
+    </div>
+
+    <div class="py-3 border-b border-dashed border-black space-y-1 text-xs">
+        <div class="flex justify-between">
+            <span>رقم الفاتورة:</span>
+            <span class="font-bold data-font" id="r-order-id">#0000</span>
+        </div>
+        <div class="flex justify-between">
+            <span>التاريخ والوقت:</span>
+            <span class="data-font" id="r-date">2026-05-21 12:00 PM</span>
+        </div>
+        <div class="flex justify-between">
+            <span>الكاشير:</span>
+            <span id="r-cashier">{{Auth::user()->name}}}</span>
+        </div>
+        <div class="flex justify-between">
+            <span>العميل:</span>
+            <span id="r-customer">{{$customer_name}}</span>
+        </div>
+    </div>
+
+    <div class="py-3 border-b border-dashed border-black">
+        <table class="w-full text-xs text-right">
+            <thead>
+            <tr class="font-bold border-b border-black">
+                <th class="pb-1 text-right">المنتج</th>
+                <th class="pb-1 text-center">الكمية</th>
+                <th class="pb-1 text-left">السعر</th>
+            </tr>
+            </thead>
+            <tbody id="r-items-body">
+            </tbody>
+        </table>
+    </div>
+
+    <div class="py-3 space-y-1.5 text-xs">
+        <div class="flex justify-between">
+            <span>طريقة الدفع:</span>
+            <span id="r-payment-method" class="font-medium">Cash</span>
+        </div>
+        <div class="flex justify-between text-gray-700">
+            <span>الخصم المطبق:</span>
+            <span class="data-font" id="r-discount">0.00 ج.م</span>
+        </div>
+        <div class="flex justify-between text-base font-bold pt-1 border-t border-black">
+            <span>الصـافي المستـحق:</span>
+            <span class="data-font" id="r-total">0.00 ج.م</span>
+        </div>
+    </div>
+
+    <div class="text-center pt-4 border-t border-dashed border-black mt-3 space-y-1">
+        <p class="text-[11px] font-bold">شكراً لزيارتكم وثقتكم بنا!</p>
+        <p class="text-[9px] text-gray-500">نظام المبيعات المتطور المتكامل</p>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('trigger-print-receipt', (event) => {
+            const receipt = event.receipt;
+
+            // 1. حقن البيانات الأساسية
+            document.getElementById('r-order-id').innerText = '#' + receipt.order_id;
+            document.getElementById('r-date').innerText = receipt.date;
+            document.getElementById('r-cashier').innerText = receipt.cashier_name;
+            document.getElementById('r-customer').innerText = receipt.customer_name;
+            document.getElementById('r-payment-method').innerText = receipt.payment_method;
+            document.getElementById('r-discount').innerText = receipt.discount + ' ج.م';
+            document.getElementById('r-total').innerText = receipt.total + ' ج.م';
+
+            // 2. حقن عناصر المنتجات
+            const itemsBody = document.getElementById('r-items-body');
+            itemsBody.innerHTML = '';
+
+            receipt.items.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-100 last:border-0';
+
+                row.innerHTML = `
+                    <td class="py-1.5 font-medium text-right">${item.name}</td>
+                    <td class="py-1.5 text-center data-font">${item.qty}</td>
+                    <td class="py-1.5 text-left data-font">${Number(item.price).toFixed(2)} ج.م</td>
+                `;
+                itemsBody.appendChild(row);
+            });
+
+            // 3. أمر نافذة الطباعة بعد استقرار الـ DOM تماماً
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    window.print();
+                }, 350);
+            });
+        });
+    });
+</script>
 </div>
