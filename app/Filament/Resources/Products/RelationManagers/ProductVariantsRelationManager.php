@@ -115,6 +115,11 @@ class ProductVariantsRelationManager extends RelationManager
                             ->required()
                             ->default(5) // القيمة الافتراضية للإنذار
                             ->minValue(0),
+                            Forms\Components\FileUpload::make('variant_img')
+                            ->label('صورة المنتج')
+                            ->disk('public')
+                            ->directory('variants')
+                            ->image(),
                     ]),
                 \Filament\Actions\DeleteAction::make(),
                 RestoreAction::make(),
