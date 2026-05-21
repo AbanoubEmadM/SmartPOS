@@ -16,15 +16,12 @@ class OrderItemFactory extends Factory
 
     public function definition(): array
     {
-        $variant = ProductVariant::factory()->create();
-        $quantity = fake()->numberBetween(1, 3);
-
         return [
-            'product_name' => $variant->product_name,
-            'current_price_cents' => $variant->price_cents,
-            'quantity' => $quantity,
+            'product_name' => fake()->words(2, true),
+            'current_price_cents' => fake()->numberBetween(1990, 17900),
+            'quantity' => fake()->numberBetween(1, 3),
             'order_id' => Order::factory(),
-            'variant_id' => $variant->id,
+            'variant_id' => ProductVariant::factory(),
         ];
     }
 }

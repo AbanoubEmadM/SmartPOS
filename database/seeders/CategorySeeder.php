@@ -10,11 +10,12 @@ class CategorySeeder extends Seeder
     public function run(): void
     {
         $categories = [
-            'Beverages',
-            'Snacks',
-            'Groceries',
-            'Household',
-            'Personal Care',
+            "Men's Shoes",
+            "Women's Shoes",
+            "Kids' Shoes",
+            'Athletic & Running',
+            'Boots',
+            'Sandals & Slides',
         ];
 
         foreach ($categories as $name) {

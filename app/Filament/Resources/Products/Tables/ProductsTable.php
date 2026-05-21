@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Tables;
 
+use App\Support\MediaPath;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -24,7 +25,8 @@ class ProductsTable
         return $table
             ->columns([
                 ImageColumn::make('product_img')
-                    ->disk('public')
+                    ->state(fn ($record): ?string => MediaPath::url($record->product_img))
+                    ->checkFileExistence(false)
                     ->circular()
                     ->size(80),
                 TextColumn::make('product_name')

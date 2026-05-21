@@ -27,6 +27,7 @@ class ProductSeeder extends Seeder
                     'variants' => [
                         ['product_name' => 'Water 500ml', 'price_cents' => 100, 'size' => '500ml', 'color' => 'Clear', 'stock' => 200],
                     ],
+
                 ],
             ],
             'Snacks' => [
