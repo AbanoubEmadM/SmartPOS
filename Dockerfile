@@ -1,25 +1,20 @@
-FROM php:8.3-cli
-ENV COMPOSER_ALLOW_SUPERUSER=1
+FROM php:8.4-fpm
 
 RUN apt-get update && apt-get install -y \
     git unzip curl zip libzip-dev libicu-dev \
     libpng-dev libjpeg62-turbo-dev libfreetype6-dev \
     nodejs npm \
-    && docker-php-ext-install pdo pdo_mysql zip intl gd \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install pdo pdo_mysql zip intl gd
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-WORKDIR /app
+WORKDIR /var/www
 
 COPY . .
-RUN composer install --no-dev --optimize-autoloader
 
-RUN npm install && npm run build
+RUN composer install
 
-RUN php artisan config:cache
-RUN php artisan route:cache
-RUN php artisan view:cache
+EXPOSE 8000
 
-EXPOSE 8080
-
-CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8080
+CMD php artisan serve --host=0.0.0.0 --port=8000
