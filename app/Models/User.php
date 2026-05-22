@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\EmployeeFactory;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,6 +16,10 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     protected $table = 'employees';
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
+    }
 
     /** @use HasFactory<EmployeeFactory> */
     use HasFactory, Notifiable;
