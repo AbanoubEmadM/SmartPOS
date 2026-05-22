@@ -16,14 +16,15 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     protected $table = 'employees';
-    public function canAccessPanel(Panel $panel): bool
-    {
-        return true;
-    }
 
     /** @use HasFactory<EmployeeFactory> */
     use HasFactory, Notifiable;
 
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return true;
+    }
     /**
      * Get the attributes that should be cast.
      *
