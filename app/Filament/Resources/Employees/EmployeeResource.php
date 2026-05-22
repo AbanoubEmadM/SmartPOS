@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Employees;
 use App\Filament\Resources\Employees\Pages\CreateEmployee;
 use App\Filament\Resources\Employees\Pages\EditEmployee;
 use App\Filament\Resources\Employees\Pages\ListEmployees;
+use App\Filament\Resources\Employees\RelationManagers\OrdersRelationManager;
 use App\Filament\Resources\Employees\Schemas\EmployeeForm;
 use App\Filament\Resources\Employees\Tables\EmployeesTable;
 use App\Models\Employee;
@@ -17,8 +18,9 @@ use Filament\Tables\Table;
 class EmployeeResource extends Resource
 {
     protected static ?string $model = Employee::class;
-    protected static ?string $navigationLabel = 'Employees';
-    protected static ?string $pluralModelLabel = 'Employees';
+    protected static ?string $navigationLabel = 'ادارة الموظفين';
+    protected static ?string $modelLabel = 'موظف';
+    protected static ?string $pluralModelLabel = 'الموظفين';
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-users';
 
     public static function form(Schema $schema): Schema
@@ -34,7 +36,7 @@ class EmployeeResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            \App\Filament\Resources\UserResource\RelationManagers\OrdersRelationManager::class
         ];
     }
 

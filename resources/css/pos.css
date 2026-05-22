@@ -1,14 +1,22 @@
 @import "tailwindcss";
 
-@source "../views/livewire/cashier/*.blade.php";
-@source "../views/components/layouts/pos-layout.blade.php";
+@source "../views/livewire/pos-terminal.blade.php";
+@source "../views/components/layouts/pos.blade.php";
 
 @theme {
     --font-sans: 'Cairo', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
         'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-}
 
-/* ── Custom POS Utilities ── */
+    --color-primary: oklch(0.62 0.17 55);
+    --color-surface-dim: oklch(0.94 0.01 264);
+    --color-surface: oklch(0.99 0 0);
+    --color-surface-bright: oklch(1 0 0);
+    --color-surface-container: oklch(0.96 0.01 264);
+    --color-surface-container-high: oklch(0.92 0.01 264);
+    --color-surface-container-low: oklch(0.97 0.005 264);
+    --color-outline-variant: oklch(0.86 0.02 264);
+    --color-on-background: oklch(0.28 0.03 264);
+}
 
 @keyframes fade-in-up {
     from {
@@ -67,7 +75,6 @@
     animation: pop-in 0.3s ease-out both;
 }
 
-/* Scrollbar styling for cart */
 @utility scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: oklch(0.551 0.027 264.364) transparent;

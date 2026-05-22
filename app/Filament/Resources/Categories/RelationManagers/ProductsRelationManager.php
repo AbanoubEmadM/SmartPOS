@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Categories\RelationManagers;
 
 use App\Filament\Resources\Categories\CategoryResource;
 use App\Filament\Resources\Products\ProductResource;
+use App\Support\MediaPath;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -24,7 +25,8 @@ class ProductsRelationManager extends RelationManager
             ->recordTitleAttribute('product_name')
             ->columns([
                 ImageColumn::make('product_img')
-                    ->disk('public')
+                    ->state(fn ($record): ?string => MediaPath::url($record->product_img))
+                    ->checkFileExistence(false)
                     ->circular()
                     ->size(80),
                 TextColumn::make('product_name'),

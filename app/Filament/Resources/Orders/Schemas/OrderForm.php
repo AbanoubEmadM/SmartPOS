@@ -13,8 +13,12 @@ class OrderForm
         return $schema
             ->components([
                 TextInput::make('total_price_cents')
+                    ->label('السعر (بالجنيه)')
+                    ->numeric()
+                    ->minValue(0.01)
                     ->required()
-                    ->numeric(),
+                    ->formatStateUsing(fn (?int $state): ?float => $state ? $state / 100 : null)
+                    ->dehydrateStateUsing(fn (?float $state): ?int => $state ? (int) ($state * 100) : null),
                 Select::make('payment_method')
                     ->options(['cash' => 'Cash', 'card' => 'Card'])
                     ->required(),

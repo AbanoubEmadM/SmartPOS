@@ -21,4 +21,8 @@ class Order extends Model
     public function employee(): BelongsTo {
         return $this->belongsTo(Employee::class, 'employee_id');
     }
+
+    public function invoice(): BelongsTo {
+        return $this->belongsTo(Invoice::class, 'invoice_id');
+    }
 }
