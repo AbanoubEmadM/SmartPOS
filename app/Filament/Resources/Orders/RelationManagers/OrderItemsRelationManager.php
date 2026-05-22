@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\OrderResource\RelationManagers;
+namespace App\Filament\Resources\Orders\RelationManagers;
 
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Filament\Resources\UserResource\RelationManagers;
+namespace App\Filament\Resources\Employees\RelationManagers;
 
 use App\Filament\Resources\OrderResource;
 use Filament\Resources\RelationManagers\RelationManager;
