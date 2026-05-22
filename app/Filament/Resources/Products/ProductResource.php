@@ -21,6 +21,9 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
+    protected static ?string $navigationLabel = 'ادارة المنتجات';
+    protected static ?string $modelLabel = 'منتج';
+    protected static ?string $pluralModelLabel = 'المنتجات';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
     protected static ?string $recordTitleAttribute = 'product_name';

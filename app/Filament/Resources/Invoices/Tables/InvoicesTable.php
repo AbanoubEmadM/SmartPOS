@@ -10,6 +10,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Mpdf\Mpdf;
 
 class InvoicesTable
 {
@@ -64,15 +65,27 @@ class InvoicesTable
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('success')
                     ->action(function (Invoice $record) {
-                        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('invoices.pdf', ['invoice' => $record]);
+                        // تهيئة mPDF مع دعم اللغة العربية والـ RTL التلقائي
+                        $mpdf = new Mpdf([
+                            'mode' => 'utf-8',
+                            'format' => 'A4',
+                            'margin_left' => 15,
+                            'margin_right' => 15,
+                            'margin_top' => 15,
+                            'margin_bottom' => 15,
+                            'autoScriptToLang' => true, // سحر ربط الحروف العربية
+                            'autoLangToFont' => true,   // سحر اختيار الفونات المتوافقة
+                        ]);
+                        // رندر الـ Blade وتحويله لـ HTML نصي
+                        $html = view('invoices.pdf', ['invoice' => $record])->render();
 
-                        return response()->streamDownload(function () use ($pdf) {
-                            echo $pdf->output();
+                        $mpdf->WriteHTML($html);
+
+                        // تحميل الملف فوراً للمتصفح
+                        return response()->streamDownload(function () use ($mpdf) {
+                            echo $mpdf->Output('', 'S');
                         }, "invoice-{$record->id}.pdf");
-                    }),
-            ])
-            ->bulkActions([
-                // خالي لحماية الفواتير من الحذف الجماعي الخطأ
+                    })
             ]);
     }
 }

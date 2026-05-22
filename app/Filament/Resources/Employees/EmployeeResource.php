@@ -18,8 +18,9 @@ use Filament\Tables\Table;
 class EmployeeResource extends Resource
 {
     protected static ?string $model = Employee::class;
-    protected static ?string $navigationLabel = 'Employees';
-    protected static ?string $pluralModelLabel = 'Employees';
+    protected static ?string $navigationLabel = 'ادارة الموظفين';
+    protected static ?string $modelLabel = 'موظف';
+    protected static ?string $pluralModelLabel = 'الموظفين';
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-users';
 
     public static function form(Schema $schema): Schema

@@ -20,6 +20,9 @@ class OrderResource extends Resource
     protected static ?string $model = Order::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $navigationLabel = 'ادارة الطلبات';
+    protected static ?string $modelLabel = 'طلب';
+    protected static ?string $pluralModelLabel = 'الطلبات';
 
     protected static ?string $recordTitleAttribute = 'order';
 

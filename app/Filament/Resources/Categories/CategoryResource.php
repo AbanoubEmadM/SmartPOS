@@ -20,6 +20,9 @@ class CategoryResource extends Resource
     protected static ?string $model = Category::class;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-tag';
+    protected static ?string $navigationLabel = 'ادارة التصنيفات';
+    protected static ?string $modelLabel = 'تصنيف';
+    protected static ?string $pluralModelLabel = 'التصنيفات';
 
     protected static ?string $recordTitleAttribute = 'category';
 

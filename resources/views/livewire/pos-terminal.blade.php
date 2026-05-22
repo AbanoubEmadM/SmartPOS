@@ -6,6 +6,7 @@ use App\Models\ProductVariant;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Customer;
+use App\Models\User; // 👈 تأكد من استدعاء موديل الـ User أو الـ Employee حسب عندك
 use function Livewire\Volt\{state, computed, updated};
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +21,7 @@ state([
     'customer_name' => '',
     'existing_customer' => null,
     'payment_method' => 'cash',
+    'selectedEmployee' => fn() => Auth::id() ?? 1, // 👈 الكاشير الحالي افتراضياً
 ]);
 
 updated(['customer_phone' => function ($value) {
@@ -34,6 +36,11 @@ updated(['customer_phone' => function ($value) {
         $this->existing_customer = null;
     }
 }]);
+
+// 👈 جلب قائمة الموظفين (الكاشيرز) المسجلين
+$employees = computed(function () {
+    return User::query()->select('id', 'name')->get();
+});
 
 $products = computed(function () {
     return Product::query()
@@ -116,10 +123,12 @@ updated(['discount' => function () { $this->calculateTotal(); }]);
 $checkout = function () {
     if (empty($this->cart)) return;
     if (empty(trim($this->customer_phone)) || empty(trim($this->customer_name))) return;
+    if (empty($this->selectedEmployee)) return; // 👈 حماية للتأكد من اختيار كاشير
 
     $order = null;
+    $invoice = null;
 
-    DB::transaction(function () use (&$order) {
+    DB::transaction(function () use (&$order, &$invoice) {
         $customerId = null;
         if ($this->existing_customer) {
             $customerId = $this->existing_customer->id;
@@ -131,10 +140,12 @@ $checkout = function () {
             $customerId = $newCustomer->id;
         }
 
-        $invoice = \App\Models\Invoice::create();
+        $invoice = \App\Models\Invoice::create([
+            'created_at' => now(),
+        ]);
 
         $order = Order::create([
-            'employee_id'       => Auth::id() ?? 1,
+            'employee_id'       => $this->selectedEmployee, // 👈 التخزين من الموظف المختار ديناميكياً
             'customer_id'       => $customerId,
             'invoice_id'        => $invoice->id,
             'payment_method'    => $this->payment_method,
@@ -159,7 +170,7 @@ $checkout = function () {
     $receiptData = [
         'order_id'       => $order->id,
         'date'           => $order->created_at->format('Y-m-d h:i A'),
-        'cashier_name'   => $order->employee->name ?? Auth::user()->name ?? 'الكاشير الكابتن',
+        'cashier_name'   => $order->employee->name ?? 'الكاشير المختار', // 👈 هيقرأ الاسم الجديد صح في الـ PDF
         'customer_name'  => $order->customer->name ?? 'عميل نقدي',
         'payment_method' => $order->payment_method == 'cash' ? 'نقدي (Cash)' : 'فيزا / كارت (Card)',
         'discount'       => number_format($this->discount, 2),
@@ -167,12 +178,17 @@ $checkout = function () {
         'items'          => collect($this->cart)->values()->toArray(),
     ];
 
-    $this->dispatch('trigger-print-receipt', receipt: $receiptData);
+    $this->dispatch('trigger-print-receipt',
+        receipt: $receiptData,
+        downloadUrl: route('invoices.download', $invoice->id)
+    );
 
     $this->cart = []; $this->total = 0.0; $this->discount = 0.0;
     $this->customer_phone = ''; $this->customer_name = ''; $this->existing_customer = null;
     $this->payment_method = 'cash';
-    session()->flash('message', 'تم الفاتورة وبدء الطباعة! ✓');
+    // بنسيب الـ selectedEmployee زي ما هو عشان الكاشير ميعيدش اختياره في كل بيعة ورا بعضها
+
+    session()->flash('message', 'تم تأكيد المبيعات وبدء التحميل! ✓');
 };
 ?>
 <div>
@@ -377,17 +393,28 @@ $checkout = function () {
             </div>
 
             <div class="p-4 bg-[#131b2e] text-white flex flex-col gap-4">
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-3 gap-3">
+
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">sell</span>
-                        <input wire:model.live="discount" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-sm text-white placeholder-white/40 focus:outline-none focus:border-[#4f46e5] transition-all" placeholder="تطبيق خصم ج.م" type="number" min="0">
+                        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">badge</span>
+                        <select wire:model.live="selectedEmployee" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white focus:outline-none focus:border-[#4f46e5] transition-all appearance-none cursor-pointer">
+                            <option value="" class="text-[#131b2e]">اختر الكاشير...</option>
+                            @foreach($this->employees as $emp)
+                                <option value="{{ $emp->id }}" class="text-[#131b2e]">{{ $emp->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
 
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">
-                            {{ $payment_method === 'cash' ? 'payments' : 'credit_card' }}
-                        </span>
-                        <select wire:model.live="payment_method" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-sm text-white focus:outline-none focus:border-[#4f46e5] transition-all appearance-none cursor-pointer">
+                        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">sell</span>
+                        <input wire:model.live="discount" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#4f46e5] transition-all" placeholder="خصم ج.م" type="number" min="0">
+                    </div>
+
+                    <div class="relative">
+            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">
+                {{ $payment_method === 'cash' ? 'payments' : 'credit_card' }}
+            </span>
+                        <select wire:model.live="payment_method" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white focus:outline-none focus:border-[#4f46e5] transition-all appearance-none cursor-pointer">
                             <option value="cash" class="text-[#131b2e]">نقدي (Cash)</option>
                             <option value="card" class="text-[#131b2e]">فيزا / كارت (Card)</option>
                         </select>
@@ -401,14 +428,13 @@ $checkout = function () {
                     </div>
 
                     <button wire:click="checkout"
-                            @if(empty($cart) || empty(trim($customer_phone)) || empty(trim($customer_name))) disabled @endif
+                            @if(empty($cart) || empty(trim($customer_phone)) || empty(trim($customer_name)) || empty($selectedEmployee)) disabled @endif
                             class="flex-1 bg-[#4f46e5] hover:bg-[#3525cd] disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg font-bold text-sm">
-                        <span>إتمام وطباعة الفاتورة</span>
-                        <span class="material-symbols-outlined text-xl">print</span>
+                        <span>إتمام الفاتورة وتحميلها</span>
+                        <span class="material-symbols-outlined text-xl">download</span>
                     </button>
                 </div>
-            </div>
-        </section>
+            </div>        </section>
     </main>
 </div> <div id="thermal-receipt-template" class="block bg-white text-black p-4 w-[80mm] mx-auto text-sm leading-tight text-right">
     <div class="text-center space-y-1 border-b border-dashed border-black pb-3">
@@ -470,43 +496,24 @@ $checkout = function () {
     </div>
 </div>
 
-<script>
-    document.addEventListener('livewire:init', () => {
-        Livewire.on('trigger-print-receipt', (event) => {
-            const receipt = event.receipt;
+    <script>
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('trigger-print-receipt', (event) => {
+                const downloadUrl = event.downloadUrl; // استلام رابط الـ PDF من الباكيند
 
-            // 1. حقن البيانات الأساسية
-            document.getElementById('r-order-id').innerText = '#' + receipt.order_id;
-            document.getElementById('r-date').innerText = receipt.date;
-            document.getElementById('r-cashier').innerText = receipt.cashier_name;
-            document.getElementById('r-customer').innerText = receipt.customer_name;
-            document.getElementById('r-payment-method').innerText = receipt.payment_method;
-            document.getElementById('r-discount').innerText = receipt.discount + ' ج.م';
-            document.getElementById('r-total').innerText = receipt.total + ' ج.م';
+                // السحر: تحميل ملف الـ PDF تلقائياً فوراً بدون فتح أي نوافذ أو طباعة حرارية
+                if (downloadUrl) {
+                    const downloadAnchor = document.createElement('a');
+                    downloadAnchor.href = downloadUrl;
 
-            // 2. حقن عناصر المنتجات
-            const itemsBody = document.getElementById('r-items-body');
-            itemsBody.innerHTML = '';
+                    // تسمية الملف برقم الفاتورة أو الأوردر بشكل ديناميكي
+                    downloadAnchor.download = `invoice-${event.receipt.order_id}.pdf`;
+                    downloadAnchor.style.display = 'none';
 
-            receipt.items.forEach(item => {
-                const row = document.createElement('tr');
-                row.className = 'border-b border-gray-100 last:border-0';
-
-                row.innerHTML = `
-                    <td class="py-1.5 font-medium text-right">${item.name}</td>
-                    <td class="py-1.5 text-center data-font">${item.qty}</td>
-                    <td class="py-1.5 text-left data-font">${Number(item.price).toFixed(2)} ج.م</td>
-                `;
-                itemsBody.appendChild(row);
-            });
-
-            // 3. أمر نافذة الطباعة بعد استقرار الـ DOM تماماً
-            requestAnimationFrame(() => {
-                setTimeout(() => {
-                    window.print();
-                }, 350);
+                    document.body.appendChild(downloadAnchor);
+                    downloadAnchor.click(); // محاكاة الضغط للتحميل التلقائي الفوري
+                    document.body.removeChild(downloadAnchor);
+                }
             });
         });
-    });
-</script>
-</div>
+    </script></div>
