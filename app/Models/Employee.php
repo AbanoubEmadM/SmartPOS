@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class Employee extends Authenticatable implements FilamentUser {
+class Employee extends Authenticatable {
     /** @use HasFactory<\Database\Factories\EmployeeFactory> */
     use HasFactory, Notifiable;
 
@@ -21,10 +21,6 @@ class Employee extends Authenticatable implements FilamentUser {
         'password',
         'remember_token',
     ];
-    public function canAccessPanel(Panel $panel): bool
-    {
-        return true;
-    }
     protected function casts(): array
     {
         return [
