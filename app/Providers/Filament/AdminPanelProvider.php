@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\DashboardStatsOverview;
 use App\Filament\Widgets\LowStockAlertsWidget;
 use App\Filament\Widgets\TodayOrdersWidget;
 use App\Filament\Widgets\TodayRevenueWidget;
@@ -51,10 +52,8 @@ class AdminPanelProvider extends PanelProvider
             })
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                TodayOrdersWidget::class,
-                TodayRevenueWidget::class,
+                DashboardStatsOverview::class,
                 TopSellingProductsWidget::class,
-                LowStockAlertsWidget::class,
                 FilamentInfoWidget::class,
             ])
 
