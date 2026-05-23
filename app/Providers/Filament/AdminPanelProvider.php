@@ -38,9 +38,7 @@ class AdminPanelProvider extends PanelProvider
             ->authGuard('web')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
-            ->pages([
-                \App\Filament\Pages\Dashboard::class,
-            ])
+            ->pages([])
             ->homeUrl(function () {
                 /** @var \App\Models\Employee $user */
                 $user = auth()->user();
