@@ -20,7 +20,8 @@ state([
     'customer_name' => '',
     'existing_customer' => null,
     'payment_method' => 'cash',
-    'selectedEmployee' => fn() => Auth::id() ?? 1, // 👈 الكاشير الحالي افتراضياً
+    'selectedEmployee' => fn() => Auth::id() ?? 1,
+    'lastReceipt' => null,
 ]);
 
 updated(['customer_phone' => function ($value) {
@@ -166,6 +167,15 @@ $checkout = function () {
 
     $order->load(['employee', 'customer', 'items.variant']);
 
+    $this->lastReceipt = [
+        'order_id'       => $order->id,
+        'date'           => $order->created_at->format('Y-m-d h:i A'),
+        'cashier_name'   => $order->employee->name ?? 'الكاشير المختار',
+        'customer_name'  => $order->customer->name ?? 'عميل نقدي',
+        'payment_method' => $order->payment_method == 'cash' ? 'نقدي (Cash)' : 'فيزا / كارت (Card)',
+        'discount'       => number_format($this->discount, 2), // القيمة الحقيقية للخصم قبل التصفير
+        'total'          => number_format($this->total, 2),
+    ];
     $receiptData = [
         'order_id'       => $order->id,
         'date'           => $order->created_at->format('Y-m-d h:i A'),
@@ -178,14 +188,13 @@ $checkout = function () {
     ];
 
     $this->dispatch('trigger-print-receipt',
-        receipt: $receiptData,
+        receipt: $this->lastReceipt,
         downloadUrl: route('invoices.download', $invoice->id)
     );
 
     $this->cart = []; $this->total = 0.0; $this->discount = 0.0;
     $this->customer_phone = ''; $this->customer_name = ''; $this->existing_customer = null;
     $this->payment_method = 'cash';
-    // بنسيب الـ selectedEmployee زي ما هو عشان الكاشير ميعيدش اختياره في كل بيعة ورا بعضها
 
     session()->flash('message', 'تم تأكيد المبيعات وبدء التحميل! ✓');
 };
@@ -435,66 +444,46 @@ $checkout = function () {
                 </div>
             </div>        </section>
     </main>
-</div> <div id="thermal-receipt-template" class="block bg-white text-black p-4 w-[80mm] mx-auto text-sm leading-tight text-right">
-    <div class="text-center space-y-1 border-b border-dashed border-black pb-3">
-        <h1 class="text-base font-bold tracking-tight">K&H Shoes</h1>
-        <p class="text-xs text-gray-600">فاتورة بيع تبسيطية</p>
-    </div>
+    <div id="thermal-receipt-template" class="block bg-white text-black p-4 w-[80mm] mx-auto text-sm leading-tight text-right">
+        <div class="text-center space-y-1 border-b border-dashed border-black pb-3">
+            <h1 class="text-base font-bold tracking-tight">K&H Shoes</h1>
+            <p class="text-xs text-gray-600">فاتورة بيع تبسيطية</p>
+        </div>
 
-    <div class="py-3 border-b border-dashed border-black space-y-1 text-xs">
-        <div class="flex justify-between">
-            <span>رقم الفاتورة:</span>
-            <span class="font-bold data-font" id="r-order-id">#0000</span>
+        <div class="py-3 border-b border-dashed border-black space-y-1 text-xs">
+            <div class="flex justify-between">
+                <span>رقم الفاتورة:</span>
+                <span class="font-bold data-font" id="r-order-id">#{{ $lastReceipt['order_id'] ?? '0000' }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>التاريخ والوقت:</span>
+                <span class="data-font" id="r-date">{{ $lastReceipt['date'] ?? now()->format('Y-m-d h:i A') }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>الكاشير:</span>
+                <span id="r-cashier">{{ $lastReceipt['cashier_name'] ?? 'الكاشير' }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span>العميل:</span>
+                <span id="r-customer">{{ $lastReceipt['customer_name'] ?? 'عميل نقدي' }}</span>
+            </div>
         </div>
-        <div class="flex justify-between">
-            <span>التاريخ والوقت:</span>
-            <span class="data-font" id="r-date">2026-05-21 12:00 PM</span>
-        </div>
-        <div class="flex justify-between">
-            <span>الكاشير:</span>
-            <span id="r-cashier">{{Auth::user()->name}}}</span>
-        </div>
-        <div class="flex justify-between">
-            <span>العميل:</span>
-            <span id="r-customer">{{$customer_name}}</span>
-        </div>
-    </div>
 
-    <div class="py-3 border-b border-dashed border-black">
-        <table class="w-full text-xs text-right">
-            <thead>
-            <tr class="font-bold border-b border-black">
-                <th class="pb-1 text-right">المنتج</th>
-                <th class="pb-1 text-center">الكمية</th>
-                <th class="pb-1 text-left">السعر</th>
-            </tr>
-            </thead>
-            <tbody id="r-items-body">
-            </tbody>
-        </table>
-    </div>
-
-    <div class="py-3 space-y-1.5 text-xs">
-        <div class="flex justify-between">
-            <span>طريقة الدفع:</span>
-            <span id="r-payment-method" class="font-medium">Cash</span>
+        <div class="py-3 space-y-1.5 text-xs">
+            <div class="flex justify-between">
+                <span>طريقة الدفع:</span>
+                <span id="r-payment-method" class="font-medium">{{ $lastReceipt['payment_method'] ?? 'نقدي' }}</span>
+            </div>
+            <div class="flex justify-between text-gray-700">
+                <span>الخصم المطبق:</span>
+                <span class="data-font" id="r-discount">{{ $lastReceipt['discount'] ?? '0.00' }} ج.م</span> </div>
+            <div class="flex justify-between text-base font-bold pt-1 border-t border-black">
+                <span>الصـافي المستـحق:</span>
+                <span class="data-font" id="r-total">{{ $lastReceipt['total'] ?? '0.00' }} ج.م</span>
+            </div>
         </div>
-        <div class="flex justify-between text-gray-700">
-            <span>الخصم المطبق:</span>
-            <span class="data-font" id="r-discount">0.00 ج.م</span>
-        </div>
-        <div class="flex justify-between text-base font-bold pt-1 border-t border-black">
-            <span>الصـافي المستـحق:</span>
-            <span class="data-font" id="r-total">0.00 ج.م</span>
-        </div>
-    </div>
 
-    <div class="text-center pt-4 border-t border-dashed border-black mt-3 space-y-1">
-        <p class="text-[11px] font-bold">شكراً لزيارتكم وثقتكم بنا!</p>
-        <p class="text-[9px] text-gray-500">نظام المبيعات المتطور المتكامل</p>
     </div>
-</div>
-
     <script>
         document.addEventListener('livewire:init', () => {
             Livewire.on('trigger-print-receipt', (event) => {
