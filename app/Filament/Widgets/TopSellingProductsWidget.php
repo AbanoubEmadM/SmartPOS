@@ -41,7 +41,7 @@ class TopSellingProductsWidget extends BaseWidget
                         DB::raw('SUM(order_items.quantity) as total_quantity'),
                         DB::raw('SUM(order_items.quantity * order_items.current_price_cents) as total_revenue')
                     )
-                    ->join('orders', 'order_items.order_id', '=', 'orders.id')
+                    ->join('orders', 'order_items.order_id', '=', 'orders.order_id')
                     ->whereBetween('orders.created_at', [
                         now()->startOfWeek(),
                         now()->endOfWeek()
