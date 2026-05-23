@@ -11,7 +11,7 @@ class OrderSalesChartWidget extends ChartWidget
 {
     protected ?string $heading = 'إحصائيات المبيعات';
 
-    protected static ?int $sort = 2;
+    protected static ?int $sort = 5;
 
     protected int | string | array $columnSpan = 'full';
 
