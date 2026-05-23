@@ -201,9 +201,6 @@ $checkout = function () {
 ?>
 <div>
 <div class="bg-[#d2d9f4] overflow-hidden h-screen w-screen flex flex-col antialiased text-[#131b2e]" dir="rtl">
-    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
 
     <style>
         body { font-family: 'IBM Plex Sans Arabic', sans-serif; }
@@ -321,7 +318,7 @@ $checkout = function () {
                                         <span class="text-gray-800 font-medium">{{ $variant->size }} {{ $variant->color }}</span>
                                         <div class="flex items-center gap-2">
                                             <span class="text-gray-400 text-[11px]">مخزن: {{ $variant->stock }}</span>
-                                            <span class="text-[#3525cd] font-bold data-font">{{ number_format($variant->price_cents / 100, 0) }} ج.م</span>
+                                            <span class="text-[#3525cd] font-bold data-font">{{ number_format($variant->price_cents / 100, 2) }} ج.م</span>
                                         </div>
                                     </button>
                                 @endforeach
