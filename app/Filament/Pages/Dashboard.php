@@ -2,7 +2,6 @@
 
 namespace App\Filament\Pages;
 
-use App\App\Filament\Widgets\StatsOverview;
 use Filament\Pages\Page;
 use Filament\Widgets\AccountWidget;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +12,11 @@ class Dashboard extends Page
     protected function getHeaderWidgets(): array
     {
         return [
-            StatsOverview::class
+            \App\Filament\Widgets\TodayRevenueWidget::class,
+            \App\Filament\Widgets\TodayOrdersWidget::class,
+            \App\Filament\Widgets\LowStockAlertsWidget::class,
+            \App\Filament\Widgets\OrderSalesChartWidget::class,
+            \App\Filament\Widgets\TopSellingProductsWidget::class,
         ];
     }
 }
