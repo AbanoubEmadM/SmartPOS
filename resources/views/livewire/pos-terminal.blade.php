@@ -6,7 +6,6 @@ use App\Models\ProductVariant;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Customer;
-use App\Models\User; // 👈 تأكد من استدعاء موديل الـ User أو الـ Employee حسب عندك
 use function Livewire\Volt\{state, computed, updated};
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -39,7 +38,7 @@ updated(['customer_phone' => function ($value) {
 
 // 👈 جلب قائمة الموظفين (الكاشيرز) المسجلين
 $employees = computed(function () {
-    return User::query()->select('id', 'name')->get();
+    return \App\Models\Employee::query()->select('id', 'name')->get();
 });
 
 $products = computed(function () {
