@@ -60,6 +60,13 @@ class AdminPanelProvider extends PanelProvider
                 LowStockAlertsWidget::class,
                 FilamentInfoWidget::class,
             ])
+            ->dashboard(function () {
+                // إجبار الدشبرد يقسم الـ Widgets الكبيرة على 3 أعمدة متساوية
+            })
+            ->columns([
+                'md' => 3,
+                'xl' => 3,
+            ])
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
