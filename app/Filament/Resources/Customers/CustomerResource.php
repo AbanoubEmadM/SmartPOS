@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Customers;
 
-use App\Filament\Resources\CustomerResource\RelationManagers\OrdersRelationManager;
+use App\Filament\Resources\Customers\RelationManagers\OrdersRelationManager;
 use App\Filament\Resources\Customers\Pages\CreateCustomer;
 use App\Filament\Resources\Customers\Pages\EditCustomer;
 use App\Filament\Resources\Customers\Pages\ListCustomers;
