@@ -62,7 +62,7 @@
 </table>
 
 <div class="total-section">
-    <p>الخصم: {{ number_format($invoice->order?->discount_cents ?? 0, 2) }} ج.م</p>
+    <p>الخصم: {{ number_format($invoice->order?->discount_cents / 100 ?? 0, 2) }} ج.م</p>
     <p style="color: #3525cd; font-size: 18px; margin-top: 5px;">الإجمالي الصافي: {{ number_format(($invoice->order?->total_price_cents ?? 0) / 100, 2) }} ج.م</p>
 </div>
 
