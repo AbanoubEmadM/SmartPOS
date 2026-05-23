@@ -19,11 +19,4 @@ class Dashboard extends Page
             \App\Filament\Widgets\TopSellingProductsWidget::class,
         ];
     }
-    public function getColumns(): int | array
-    {
-        return [
-            'md' => 2,
-            'xl' => 3,
-        ];
-    }
 }
