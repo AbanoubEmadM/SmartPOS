@@ -2,7 +2,11 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\LowStockAlertsWidget;
 use App\Filament\Widgets\StockAlertsOverview;
+use App\Filament\Widgets\TodayOrdersWidget;
+use App\Filament\Widgets\TodayRevenueWidget;
+use App\Filament\Widgets\TopSellingProductsWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -50,7 +54,10 @@ class AdminPanelProvider extends PanelProvider
             })
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                StockAlertsOverview::class,
+                TodayOrdersWidget::class,
+                TodayRevenueWidget::class,
+                TopSellingProductsWidget::class,
+                LowStockAlertsWidget::class,
                 AccountWidget::class,
                 FilamentInfoWidget::class,
             ])
