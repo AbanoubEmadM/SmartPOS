@@ -150,6 +150,7 @@ $checkout = function () {
             'invoice_id'        => $invoice->id,
             'payment_method'    => $this->payment_method,
             'total_price_cents' => (int) round($this->total * 100),
+            'discount_cents'    => (int) round($this->discount * 100),
             'created_at'        => now(),
         ]);
 
