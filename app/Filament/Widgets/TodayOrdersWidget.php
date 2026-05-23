@@ -8,6 +8,7 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class TodayOrdersWidget extends BaseWidget
 {
+    protected static ?int $sort = 1;
     protected int | string | array $columnSpan = 6;
 
     protected function getStats(): array

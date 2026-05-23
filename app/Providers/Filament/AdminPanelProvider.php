@@ -58,7 +58,6 @@ class AdminPanelProvider extends PanelProvider
                 TodayRevenueWidget::class,
                 TopSellingProductsWidget::class,
                 LowStockAlertsWidget::class,
-                AccountWidget::class,
                 FilamentInfoWidget::class,
             ])
             ->middleware([

@@ -8,6 +8,8 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class LowStockAlertsWidget extends BaseWidget
 {
+    protected static ?int $sort = 4;
+    protected int | string | array $columnSpan = 4;
 
     protected function getStats(): array
     {

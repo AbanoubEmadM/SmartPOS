@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 
 class TopSellingProductsWidget extends BaseWidget
 {
-    protected int | string | array $columnSpan = 'full';
+    protected int | string | array $columnSpan = '8';
 
     protected static ?int $sort = 3;
 
