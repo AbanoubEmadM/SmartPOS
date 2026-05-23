@@ -2,6 +2,9 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Widgets\DashboardStatsOverview;
+use App\Filament\Widgets\OrderSalesChartWidget;
+use App\Filament\Widgets\TopSellingProductsWidget;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -45,8 +48,10 @@ class AdminPanelProvider extends PanelProvider
 
                 return '/admin';
             })
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
+                DashboardStatsOverview::class,
+                OrderSalesChartWidget::class,
+                TopSellingProductsWidget::class,
             ])
 
             ->middleware([
