@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
 Route::redirect('/', 'admin/dashboard');
-Volt::route('/pos', 'pos-terminal');
+Volt::route('pos', 'pos-terminal');
 Route::get('/invoices/{invoice}/download', function (\App\Models\Invoice $invoice) {
     $mpdf = new \Mpdf\Mpdf([
         'mode' => 'utf-8',
