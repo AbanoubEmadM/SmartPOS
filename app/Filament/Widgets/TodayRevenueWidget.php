@@ -9,8 +9,11 @@ use Illuminate\Support\Facades\DB;
 
 class TodayRevenueWidget extends BaseWidget
 {
-    protected static ?int $sort = 2;
-    protected int | string | array $columnSpan = 6;
+    protected static ?int $sort = 1;
+    protected int | string | array $columnSpan = [
+        'md' => 4,
+        'xl' => 4,
+    ];
     protected function getStats(): array
     {
         // Calculate total revenue for today

@@ -11,10 +11,11 @@ class OrderSalesChartWidget extends ChartWidget
 {
     protected ?string $heading = 'إحصائيات المبيعات';
 
-    protected static ?int $sort = 5;
-
-    protected int | string | array $columnSpan = 'full';
-
+    protected static ?int $sort = 4;
+    protected int | string | array $columnSpan = [
+        'md' => 8,
+        'xl' => 8,
+    ];
     public ?string $filter = 'today';
 
     protected function getFilters(): ?array
