@@ -16,37 +16,22 @@ class TopSellingProductsWidget extends BaseWidget
 
     public function table(Table $table): Table
     {
-        // Get top 5 selling products this week
-        $topProducts = OrderItem::select(
-            'order_items.product_name',
-            DB::raw('SUM(order_items.quantity) as total_quantity'),
-            DB::raw('SUM(order_items.quantity * order_items.current_price_cents) as total_revenue')
-        )
-            ->join('orders', 'order_items.order_id', '=', 'orders.order_id')
-            ->whereBetween('orders.created_at', [
-                now()->startOfWeek(),
-                now()->endOfWeek()
-            ])
-            ->groupBy('order_items.product_name')
-            ->orderByDesc('total_quantity')
-            ->limit(5)
-            ->get();
-
         return $table
             ->heading('أفضل 5 منتجات مبيعاً هذا الأسبوع')
             ->query(
                 OrderItem::query()
                     ->select(
+                        'order_items.id',
                         'order_items.product_name',
                         DB::raw('SUM(order_items.quantity) as total_quantity'),
                         DB::raw('SUM(order_items.quantity * order_items.current_price_cents) as total_revenue')
                     )
-                    ->join('orders', 'order_items.order_id', '=', 'orders.order_id')
+                    ->join('orders', 'order_items.order_id', '=', 'orders.id')
                     ->whereBetween('orders.created_at', [
                         now()->startOfWeek(),
                         now()->endOfWeek()
                     ])
-                    ->groupBy('order_items.product_name')
+                    ->groupBy('order_items.product_name', 'order_items.id')
                     ->orderByDesc('total_quantity')
                     ->limit(5)
             )
