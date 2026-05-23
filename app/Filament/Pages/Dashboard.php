@@ -8,7 +8,7 @@ class Dashboard extends BaseDashboard
 {
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-home';
 
-    protected function getHeaderWidgets(): array
+    public function getWidgets(): array
     {
         return [
             \App\Filament\Widgets\DashboardStatsOverview::class,
