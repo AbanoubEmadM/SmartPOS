@@ -3,9 +3,6 @@
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
-Route::get('/', function () {
-    redirect('/admin');
-});
 
 Volt::route('/pos', 'pos-terminal');
 Route::get('/invoices/{invoice}/download', function (\App\Models\Invoice $invoice) {
