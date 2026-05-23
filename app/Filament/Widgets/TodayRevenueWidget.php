@@ -13,7 +13,7 @@ class TodayRevenueWidget extends BaseWidget
     {
         // Calculate total revenue for today
         $todayRevenue = Order::whereDate('created_at', today())
-            ->sum(DB::raw('total_amount_cents'));
+            ->sum(DB::raw('total_price_cents'));
 
         // Convert cents to currency format
         $formattedRevenue = number_format($todayRevenue / 100, 2);
