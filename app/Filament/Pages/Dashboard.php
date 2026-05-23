@@ -12,7 +12,6 @@ class Dashboard extends Page
     protected function getHeaderWidgets(): array
     {
         return [
-            AccountWidget::class,
             \App\Filament\Widgets\TodayRevenueWidget::class,
             \App\Filament\Widgets\TodayOrdersWidget::class,
             \App\Filament\Widgets\LowStockAlertsWidget::class,
