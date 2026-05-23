@@ -9,7 +9,7 @@ use Flowframe\Trend\TrendValue;
 
 class OrderSalesChartWidget extends ChartWidget
 {
-    protected static ?string $heading = 'إحصائيات المبيعات';
+    protected ?string $heading = 'إحصائيات المبيعات';
 
     protected static ?int $sort = 4;
 
