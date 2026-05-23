@@ -13,8 +13,10 @@ class Dashboard extends Page
     {
         return [
             AccountWidget::class,
-            \App\Filament\Widgets\StockAlertsOverview::class,
-
+            \App\Filament\Widgets\TodayRevenueWidget::class,
+            \App\Filament\Widgets\TodayOrdersWidget::class,
+            \App\Filament\Widgets\LowStockAlertsWidget::class,
+            \App\Filament\Widgets\TopSellingProductsWidget::class,
         ];
     }
 }
