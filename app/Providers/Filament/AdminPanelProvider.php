@@ -53,6 +53,12 @@ class AdminPanelProvider extends PanelProvider
                 return '/admin';
             })
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
+            ->dashboard(function () {
+            })
+            ->columns([
+                'md' => 3,
+                'xl' => 3,
+            ])
             ->widgets([
                 TodayOrdersWidget::class,
                 TodayRevenueWidget::class,
