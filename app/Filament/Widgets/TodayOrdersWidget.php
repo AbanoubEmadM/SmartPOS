@@ -8,6 +8,8 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class TodayOrdersWidget extends BaseWidget
 {
+    protected int | string | array $columnSpan = 6;
+
     protected function getStats(): array
     {
         // Count total orders for today
