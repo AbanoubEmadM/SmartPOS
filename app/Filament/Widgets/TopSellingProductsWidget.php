@@ -11,10 +11,8 @@ use Illuminate\Support\Facades\DB;
 class TopSellingProductsWidget extends BaseWidget
 {
     protected static ?int $sort = 5;
-    protected int | string | array $columnSpan = [
-        'md' => 4,
-        'xl' => 4,
-    ];
+
+    protected int | string | array $columnSpan = 'full';
 
     public function table(Table $table): Table
     {

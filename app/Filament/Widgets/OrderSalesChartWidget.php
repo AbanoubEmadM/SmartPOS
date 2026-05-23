@@ -9,13 +9,12 @@ use Flowframe\Trend\TrendValue;
 
 class OrderSalesChartWidget extends ChartWidget
 {
-    protected ?string $heading = 'إحصائيات المبيعات';
+    protected static ?string $heading = 'إحصائيات المبيعات';
 
     protected static ?int $sort = 4;
-    protected int | string | array $columnSpan = [
-        'md' => 8,
-        'xl' => 8,
-    ];
+
+    protected int | string | array $columnSpan = 'full';
+
     public ?string $filter = 'today';
 
     protected function getFilters(): ?array

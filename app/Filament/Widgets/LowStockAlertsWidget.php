@@ -9,10 +9,7 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 class LowStockAlertsWidget extends BaseWidget
 {
     protected static ?int $sort = 3;
-    protected int | string | array $columnSpan = [
-        'md' => 4,
-        'xl' => 4,
-    ];
+
     protected function getStats(): array
     {
         // Count products with low stock
