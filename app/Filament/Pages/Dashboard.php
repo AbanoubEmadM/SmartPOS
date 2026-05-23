@@ -2,12 +2,13 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Pages\Dashboard as BaseDashboard;
+use Filament\Pages\Page;
+use Filament\Widgets\AccountWidget;
+use Illuminate\Support\Facades\Auth;
 
-class Dashboard extends BaseDashboard
+class Dashboard extends Page
 {
     protected static string|null|\BackedEnum $navigationIcon = 'heroicon-o-home';
-
     protected function getHeaderWidgets(): array
     {
         return [
@@ -18,7 +19,6 @@ class Dashboard extends BaseDashboard
             \App\Filament\Widgets\TopSellingProductsWidget::class,
         ];
     }
-
     public function getColumns(): int | array
     {
         return [

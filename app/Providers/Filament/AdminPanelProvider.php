@@ -3,7 +3,6 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Widgets\LowStockAlertsWidget;
-use App\Filament\Widgets\StockAlertsOverview;
 use App\Filament\Widgets\TodayOrdersWidget;
 use App\Filament\Widgets\TodayRevenueWidget;
 use App\Filament\Widgets\TopSellingProductsWidget;
