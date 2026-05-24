@@ -67,11 +67,11 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationItems([
                 NavigationItem::make('شاشة البيع (POS)')
-                    ->url('/admin/pos-terminal', shouldOpenInNewTab: false) // الرابط الافتراضي للـ POS بتاعك
-                    ->icon('heroicon-o-shopping-cart') // أيقونة عربة التسوق الرايقة
-                    ->activeIcon('heroicon-s-shopping-cart') // الأيقونة وهي نشطة
-                    ->group('المبيعات') // لو حابب تحطها جوه جروب منفصل، أو سيب السطر ده لو عايزها مفرودة بره
-                    ->sort(2), // ترتيبها ييجي علطول بعد الـ Dashboard (الـ Dashboard ترتيبه 1)
+                    ->url('/pos', shouldOpenInNewTab: false)
+                    ->icon('heroicon-o-shopping-cart')
+                    ->activeIcon('heroicon-s-shopping-cart')
+                    ->group('المبيعات')
+                    ->sort(2),
             ])
             ->authMiddleware([
                 Authenticate::class,
