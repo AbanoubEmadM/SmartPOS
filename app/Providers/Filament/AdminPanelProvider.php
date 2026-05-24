@@ -53,12 +53,6 @@ class AdminPanelProvider extends PanelProvider
                 OrderSalesChartWidget::class,
                 TopSellingProductsWidget::class,
             ])
-            ->canAccessPanel(function () {
-                /** @var \App\Models\Employee $user */
-                $user = auth()->user();
-
-                return $user && $user->role === 'admin';
-            })
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
