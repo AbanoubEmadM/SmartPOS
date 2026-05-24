@@ -43,7 +43,7 @@ class AdminPanelProvider extends PanelProvider
                 $user = auth()->user();
 
                 if ($user && $user->role === 'cashier') {
-                    return '/admin/pos-terminal';
+                    return '/pos';
                 }
 
                 return '/admin';
@@ -53,7 +53,12 @@ class AdminPanelProvider extends PanelProvider
                 OrderSalesChartWidget::class,
                 TopSellingProductsWidget::class,
             ])
+            ->canAccessPanel(function () {
+                /** @var \App\Models\Employee $user */
+                $user = auth()->user();
 
+                return $user && $user->role === 'admin';
+            })
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

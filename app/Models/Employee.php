@@ -34,10 +34,12 @@ class Employee extends Authenticatable implements FilamentUser // 👈 نخلي�
     // السماح بدخول لوحة تحكم فلامنت
     public function canAccessPanel(Panel $panel): bool
     {
+        if ($panel->getId() === 'admin') {
+            return $this->role === 'admin';
+        }
         return true;
     }
-
-    // العلاقة الخاصة بالطلبات
+        // العلاقة الخاصة بالطلبات
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class, 'employee_id');
