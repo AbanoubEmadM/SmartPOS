@@ -13,8 +13,13 @@ WORKDIR /var/www
 
 COPY . .
 
-RUN composer install
+RUN composer install --no-dev --optimize-autoloader
+
+RUN npm install && npm run build
+
+RUN php artisan storage:link || true
+RUN chmod -R 775 storage bootstrap/cache && chown -R www-data:www-data /var/www
 
 EXPOSE 8000
 
-CMD php artisan serve --host=0.0.0.0 --port=8000
+CMD php artisan config:clear && php artisan view:clear && php artisan cache:clear && php artisan serve --host=0.0.0.0 --port=8000
