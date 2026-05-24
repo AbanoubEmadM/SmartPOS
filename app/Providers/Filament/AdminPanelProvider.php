@@ -9,6 +9,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationItem;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
@@ -63,6 +64,14 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+            ])
+            ->navigationItems([
+                NavigationItem::make('شاشة البيع (POS)')
+                    ->url('/admin/pos-terminal', shouldOpenInNewTab: false) // الرابط الافتراضي للـ POS بتاعك
+                    ->icon('heroicon-o-shopping-cart') // أيقونة عربة التسوق الرايقة
+                    ->activeIcon('heroicon-s-shopping-cart') // الأيقونة وهي نشطة
+                    ->group('المبيعات') // لو حابب تحطها جوه جروب منفصل، أو سيب السطر ده لو عايزها مفرودة بره
+                    ->sort(2), // ترتيبها ييجي علطول بعد الـ Dashboard (الـ Dashboard ترتيبه 1)
             ])
             ->authMiddleware([
                 Authenticate::class,
