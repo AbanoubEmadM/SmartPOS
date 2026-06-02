@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->integer('total_price_cents');
-            $table->enum('payment_method', ['cash', 'card']);
+            $table->enum('payment_method', ['cash', 'card', 'instapay'])->default('cash');
             $table->timestamps();
         });
     }

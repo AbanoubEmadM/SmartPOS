@@ -44,29 +44,7 @@ $employees = computed(function () {
     return \App\Models\Employee::query()->select('id', 'name')->get();
 });
 
-$products = computed(function () {
-    return Cache::remember(
-        'pos_products_' . md5($this->search . '_' . $this->selectedCategory),
-        60,
-        fn () => Product::query()
-            ->where('is_available', true)
-            ->whereHas('variants', fn ($q) => $q->where('stock', '>', 0))
-            ->when($this->selectedCategory,
-                fn ($q) => $q->where('category_id', $this->selectedCategory))
-            ->when($this->search !== '',
-                function ($q) {
-                    $term = '%' . $this->search . '%';
-
-                    $q->where(function ($inner) use ($term) {
-                        $inner->where('product_name', 'like', $term)
-                            ->orWhereHas('variants',
-                                fn ($vq) => $vq->where('sku', 'like', $term));
-                    });
-                })
-            ->with(['variants' => fn ($q) => $q->where('stock', '>', 0)])
-            ->paginate(24)
-    );
-});
+$products = computed(function () { return Product::query() ->where('is_available', true) ->whereHas('variants', fn ($q) => $q->where('stock', '>', 0)) ->when($this->selectedCategory, fn ($q) => $q->where('category_id', $this->selectedCategory)) ->when($this->search !== '', function ($q) { $term = '%' . $this->search . '%'; $q->where(function ($inner) use ($term) { $inner->where('product_name', 'like', $term) ->orWhereHas('variants', fn ($vq) => $vq->where('sku', 'like', $term)); }); }) ->with(['variants' => fn ($q) => $q->where('stock', '>', 0)]) ->get(); });
 $categories = computed(function () {
     return Category::query()->where('is_active', true)->get();
 });
@@ -97,14 +75,12 @@ $addToCart = function (int $variantId) {
         ];
     }
     $this->calculateTotal();
-    $this->skipRender();
 };
 
 $incrementQty = function (int $variantId) {
     if (isset($this->cart[$variantId]) && $this->cart[$variantId]['qty'] < $this->cart[$variantId]['max_stock']) {
         $this->cart[$variantId]['qty']++;
         $this->calculateTotal();
-        $this->skipRender();
     }
 };
 
@@ -113,7 +89,6 @@ $decrementQty = function (int $variantId) {
         if ($this->cart[$variantId]['qty'] > 1) {
             $this->cart[$variantId]['qty']--;
             $this->calculateTotal();
-            $this->skipRender();
         } else {
             $this->removeItem($variantId);
         }
@@ -123,7 +98,6 @@ $decrementQty = function (int $variantId) {
 $removeItem = function (int $variantId) {
     unset($this->cart[$variantId]);
     $this->calculateTotal();
-    $this->skipRender();
 };
 
 $calculateTotal = function () {
