@@ -19,18 +19,17 @@
     </style>
 </head>
 <body>
-
 <div class="header">
     <div class="invoice-title">فاتورة مبيعات #{{ $invoice->id }}</div>
     <p style="font-size: 14px; color: #464555;">متجر K&H Shoes</p>
 </div>
-
 <table class="meta-table">
     <tr>
         <td class="meta-td">
             <strong>معلومات الفاتورة:</strong>
             <p>التاريخ: {{ $invoice->created_at->format('Y-m-d h:i A') }}</p>
-            <p>طريقة الدفع: {{ $invoice->order?->payment_method == 'cash' ? 'نقدي (Cash)' : ($order->payment_method == 'instapay' ? 'إنستاباي (Instapay)' : 'فيزا / كارت (Card)') }}</p>
+            {{-- ✅ Fixed: was referencing undefined $order variable --}}
+            <p>طريقة الدفع: {{ $invoice->order?->payment_method == 'cash' ? 'نقدي (Cash)' : ($invoice->order?->payment_method == 'instapay' ? 'إنستاباي (Instapay)' : 'فيزا / كارت (Card)') }}</p>
         </td>
         <td class="meta-td" style="text-align: left;">
             <strong>أطراف المعاملة:</strong>
@@ -39,7 +38,6 @@
         </td>
     </tr>
 </table>
-
 <table class="table">
     <thead>
     <tr>
@@ -60,11 +58,10 @@
     @endif
     </tbody>
 </table>
-
 <div class="total-section">
-    <p>الخصم: {{ number_format($invoice->order?->discount_cents / 100 ?? 0, 2) }} ج.م</p>
+    {{-- ✅ Fixed: null coalescing must wrap the cents value BEFORE dividing --}}
+    <p>الخصم: {{ number_format(($invoice->order?->discount_cents ?? 0) / 100, 2) }} ج.م</p>
     <p style="color: #3525cd; font-size: 18px; margin-top: 5px;">الإجمالي الصافي: {{ number_format(($invoice->order?->total_price_cents ?? 0) / 100, 2) }} ج.م</p>
 </div>
-
 </body>
 </html>
