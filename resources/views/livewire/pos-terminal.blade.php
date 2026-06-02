@@ -89,12 +89,14 @@ $addToCart = function (int $variantId) {
         ];
     }
     $this->calculateTotal();
+    $this->skipRender();
 };
 
 $incrementQty = function (int $variantId) {
     if (isset($this->cart[$variantId]) && $this->cart[$variantId]['qty'] < $this->cart[$variantId]['max_stock']) {
         $this->cart[$variantId]['qty']++;
         $this->calculateTotal();
+        $this->skipRender();
     }
 };
 
@@ -103,6 +105,7 @@ $decrementQty = function (int $variantId) {
         if ($this->cart[$variantId]['qty'] > 1) {
             $this->cart[$variantId]['qty']--;
             $this->calculateTotal();
+            $this->skipRender();
         } else {
             $this->removeItem($variantId);
         }
@@ -112,6 +115,7 @@ $decrementQty = function (int $variantId) {
 $removeItem = function (int $variantId) {
     unset($this->cart[$variantId]);
     $this->calculateTotal();
+    $this->skipRender();
 };
 
 $calculateTotal = function () {
@@ -294,7 +298,7 @@ $checkout = function () {
             <div class="p-4 space-y-4 bg-[#faf8ff] shadow-sm z-10">
                 <div class="relative">
                     <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[#777587] text-xl">search</span>
-                    <input wire:model.live="search" class="w-full bg-[#f2f3ff] border border-[#c7c4d8] rounded-full py-3 pr-12 pl-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#3525cd] transition-all" placeholder="محرك البحث عن المنتجات (الاسم، SKU، أو الباركود)..." type="text">
+                    <input wire:model.live.debounce.300ms="search" class="w-full bg-[#f2f3ff] border border-[#c7c4d8] rounded-full py-3 pr-12 pl-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#3525cd] transition-all" placeholder="محرك البحث عن المنتجات (الاسم، SKU، أو الباركود)..." type="text">
                 </div>
 
                 <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
@@ -424,7 +428,7 @@ $checkout = function () {
 
                     <div class="relative">
                         <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">sell</span>
-                        <input wire:model.live="discount" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#4f46e5] transition-all" placeholder="{{ $discountType === 'percentage' ? 'خصم %' : 'خصم ج.م' }}" type="number" min="0" max="{{ $discountType === 'percentage' ? '100' : '' }}">
+                        <input wire:model.live.debounce.300ms="discount" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#4f46e5] transition-all" placeholder="{{ $discountType === 'percentage' ? 'خصم %' : 'خصم ج.م' }}" type="number" min="0" max="{{ $discountType === 'percentage' ? '100' : '' }}">
                         <button wire:click="$set('discountType', '{{ $discountType === 'percentage' ? 'fixed' : 'percentage' }}')" class="absolute left-1 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition">
                             {{ $discountType === 'percentage' ? '%' : 'ج.م' }}
                         </button>

@@ -30,7 +30,7 @@
         <td class="meta-td">
             <strong>معلومات الفاتورة:</strong>
             <p>التاريخ: {{ $invoice->created_at->format('Y-m-d h:i A') }}</p>
-            <p>طريقة الدفع: {{ $invoice->order?->payment_method == 'cash' ? 'نقدي (Cash)' : 'فيزا / كارت (Card)' }}</p>
+            <p>طريقة الدفع: {{ $invoice->order?->payment_method == 'cash' ? 'نقدي (Cash)' : ($order->payment_method == 'instapay' ? 'إنستاباي (Instapay)' : 'فيزا / كارت (Card)') }}</p>
         </td>
         <td class="meta-td" style="text-align: left;">
             <strong>أطراف المعاملة:</strong>
