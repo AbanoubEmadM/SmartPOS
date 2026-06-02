@@ -16,6 +16,7 @@ state([
     'cart' => [],
     'total' => 0.0,
     'discount' => 0.0,
+    'discountType' => 'fixed', // 'fixed' or 'percentage'
     'customer_phone' => '',
     'customer_name' => '',
     'existing_customer' => null,
@@ -115,10 +116,19 @@ $removeItem = function (int $variantId) {
 
 $calculateTotal = function () {
     $subtotal = collect($this->cart)->sum(fn ($item) => $item['price'] * $item['qty']);
-    $this->total = max(0.0, $subtotal - (float)$this->discount);
+
+    $discountAmount = 0.0;
+    if ($this->discountType === 'percentage') {
+        $discountAmount = $subtotal * ((float)$this->discount / 100);
+    } else {
+        $discountAmount = (float)$this->discount;
+    }
+
+    $this->total = max(0.0, $subtotal - $discountAmount);
 };
 
 updated(['discount' => function () { $this->calculateTotal(); }]);
+updated(['discountType' => function () { $this->calculateTotal(); }]);
 
 $checkout = function () {
     if (empty($this->cart)) return;
@@ -173,7 +183,7 @@ $checkout = function () {
         'date'           => $order->created_at->format('Y-m-d h:i A'),
         'cashier_name'   => $order->employee->name ?? 'الكاشير المختار',
         'customer_name'  => $order->customer->name ?? 'عميل نقدي',
-        'payment_method' => $order->payment_method == 'cash' ? 'نقدي (Cash)' : 'فيزا / كارت (Card)',
+        'payment_method' => $order->payment_method == 'cash' ? 'نقدي (Cash)' : ($order->payment_method == 'instapay' ? 'إنستاباي (Instapay)' : 'فيزا / كارت (Card)'),
         'discount'       => number_format($this->discount, 2), // القيمة الحقيقية للخصم قبل التصفير
         'total'          => number_format($this->total, 2),
     ];
@@ -182,7 +192,7 @@ $checkout = function () {
         'date'           => $order->created_at->format('Y-m-d h:i A'),
         'cashier_name'   => $order->employee->name ?? 'الكاشير المختار', // 👈 هيقرأ الاسم الجديد صح في الـ PDF
         'customer_name'  => $order->customer->name ?? 'عميل نقدي',
-        'payment_method' => $order->payment_method == 'cash' ? 'نقدي (Cash)' : 'فيزا / كارت (Card)',
+        'payment_method' => $order->payment_method == 'cash' ? 'نقدي (Cash)' : ($order->payment_method == 'instapay' ? 'إنستاباي (Instapay)' : 'فيزا / كارت (Card)'),
         'discount'       => number_format($this->discount, 2),
         'total'          => number_format($this->total, 2),
         'items'          => collect($this->cart)->values()->toArray(),
@@ -193,7 +203,7 @@ $checkout = function () {
         downloadUrl: route('invoices.download', $invoice->id)
     );
 
-    $this->cart = []; $this->total = 0.0; $this->discount = 0.0;
+    $this->cart = []; $this->total = 0.0; $this->discount = 0.0; $this->discountType = 'fixed';
     $this->customer_phone = ''; $this->customer_name = ''; $this->existing_customer = null;
     $this->payment_method = 'cash';
 
@@ -414,7 +424,10 @@ $checkout = function () {
 
                     <div class="relative">
                         <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">sell</span>
-                        <input wire:model.live="discount" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#4f46e5] transition-all" placeholder="خصم ج.م" type="number" min="0">
+                        <input wire:model.live="discount" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#4f46e5] transition-all" placeholder="{{ $discountType === 'percentage' ? 'خصم %' : 'خصم ج.م' }}" type="number" min="0" max="{{ $discountType === 'percentage' ? '100' : '' }}">
+                        <button wire:click="$set('discountType', '{{ $discountType === 'percentage' ? 'fixed' : 'percentage' }}')" class="absolute left-1 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition">
+                            {{ $discountType === 'percentage' ? '%' : 'ج.م' }}
+                        </button>
                     </div>
 
                     <div class="relative">
@@ -424,6 +437,8 @@ $checkout = function () {
                         <select wire:model.live="payment_method" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white focus:outline-none focus:border-[#4f46e5] transition-all appearance-none cursor-pointer">
                             <option value="cash" class="text-[#131b2e]">نقدي (Cash)</option>
                             <option value="card" class="text-[#131b2e]">فيزا / كارت (Card)</option>
+                            <option value="instapay" class="text-[#131b2e]">Instapay</option>
+
                         </select>
                     </div>
                 </div>
