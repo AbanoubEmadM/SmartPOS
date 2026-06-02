@@ -267,8 +267,17 @@ $checkout = function () {
             </div>
         </div>
 
-        <span class="text-xl font-bold text-[#3525cd]">K&H Shoes</span>
+        <div class="flex items-center gap-2">
+            <img
+                src="{{ asset('images/logo.jpeg') }}"
+                alt="K&H Shoes Logo"
+                class="w-15 h-15 rounded-md object-contain"
+            >
 
+            <span class="text-xl font-bold text-[#3525cd]">
+        K&H Shoes
+    </span>
+        </div>
         <div>
             <a href="/admin" class="text-sm font-bold text-gray-500 hover:text-[#3525cd] transition bg-gray-50 px-5 py-2.5 rounded-xl border border-gray-200 shadow-sm">لوحة التحكم ←</a>
         </div>
@@ -399,7 +408,6 @@ $checkout = function () {
                 <div class="grid grid-cols-3 gap-3">
 
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">badge</span>
                         <select wire:model.live="selectedEmployee" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white focus:outline-none focus:border-[#4f46e5] transition-all appearance-none cursor-pointer">
                             <option value="" class="text-[#131b2e]">اختر الكاشير...</option>
                             @foreach($this->employees as $emp)
@@ -409,17 +417,13 @@ $checkout = function () {
                     </div>
 
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">sell</span>
-                        <input wire:model.blur="discount" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#4f46e5] transition-all" placeholder="{{ $discountType === 'percentage' ? 'خصم %' : 'خصم ج.م' }}" type="number" min="0" max="{{ $discountType === 'percentage' ? '100' : '' }}">
+                        <input wire:model.live.debounce.500ms="discount" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#4f46e5] transition-all" placeholder="{{ $discountType === 'percentage' ? 'خصم %' : 'خصم ج.م' }}" type="number" min="0" max="{{ $discountType === 'percentage' ? '100' : '' }}">
                         <button wire:click="$set('discountType', '{{ $discountType === 'percentage' ? 'fixed' : 'percentage' }}')" class="absolute left-1 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition">
                             {{ $discountType === 'percentage' ? '%' : 'ج.م' }}
                         </button>
                     </div>
 
                     <div class="relative">
-            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">
-                {{ $payment_method === 'cash' ? 'payments' : 'credit_card' }}
-            </span>
                         <select wire:model.live="payment_method" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white focus:outline-none focus:border-[#4f46e5] transition-all appearance-none cursor-pointer">
                             <option value="cash" class="text-[#131b2e]">نقدي (Cash)</option>
                             <option value="card" class="text-[#131b2e]">فيزا / كارت (Card)</option>

@@ -39,7 +39,11 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([])
-            ->homeUrl(function () {
+            ->brandName('K&H Shoes')
+            ->brandLogo(asset('images/logo.jpeg'))
+            ->brandLogoHeight('4.5rem')
+            ->favicon(asset('images/favicon.png'))
+        ->homeUrl(function () {
                 /** @var \App\Models\Employee $user */
                 $user = auth()->user();
 
