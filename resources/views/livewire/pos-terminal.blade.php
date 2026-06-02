@@ -5,6 +5,7 @@ use App\Models\Category;
 use App\Models\ProductVariant;
 use App\Models\Order;
 use App\Models\OrderItem;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Customer;
 use function Livewire\Volt\{state, computed, updated};
 use Illuminate\Support\Facades\DB;
@@ -38,43 +39,44 @@ updated(['customer_phone' => function ($value) {
     }
 }]);
 
+// 👈 جلب قائمة الموظفين (الكاشيرز) المسجلين
 $employees = computed(function () {
     return \App\Models\Employee::query()->select('id', 'name')->get();
-})->persist(); // ✅ cached for lifetime of component
+});
 
-// ✅ FIX 1: ->persist() memoizes this so cart actions never re-run this query
 $products = computed(function () {
-    return Product::query()
-        ->where('is_available', true)
-        ->whereHas('variants', fn ($q) => $q->where('stock', '>', 0))
-        ->when($this->selectedCategory, fn ($q) => $q->where('category_id', $this->selectedCategory))
-        ->when($this->search !== '', function ($q) {
-            $term = '%' . $this->search . '%';
-            $q->where(function ($inner) use ($term) {
-                $inner->where('product_name', 'like', $term)
-                    ->orWhereHas('variants', fn ($vq) => $vq->where('sku', 'like', $term));
-            });
-        })
-        ->with(['variants' => fn ($q) => $q->where('stock', '>', 0)])
-        ->get();
-})->persist(); // ✅ KEY FIX: cart add/remove/qty changes will NOT re-run this query
+    return Cache::remember(
+        'pos_products_' . md5($this->search . '_' . $this->selectedCategory),
+        60,
+        fn () => Product::query()
+            ->where('is_available', true)
+            ->whereHas('variants', fn ($q) => $q->where('stock', '>', 0))
+            ->when($this->selectedCategory,
+                fn ($q) => $q->where('category_id', $this->selectedCategory))
+            ->when($this->search !== '',
+                function ($q) {
+                    $term = '%' . $this->search . '%';
 
+                    $q->where(function ($inner) use ($term) {
+                        $inner->where('product_name', 'like', $term)
+                            ->orWhereHas('variants',
+                                fn ($vq) => $vq->where('sku', 'like', $term));
+                    });
+                })
+            ->with(['variants' => fn ($q) => $q->where('stock', '>', 0)])
+            ->paginate(24)
+    );
+});
 $categories = computed(function () {
     return Category::query()->where('is_active', true)->get();
-})->persist(); // ✅ cached — categories never change mid-session
+});
 
-// ✅ FIX 2: cache variant lookups so clicking the same product repeatedly is instant
 $addToCart = function (int $variantId) {
-    $variant = cache()->remember(
-        "pos_variant_{$variantId}",
-        now()->addMinutes(5),
-        fn() => ProductVariant::with('product')->find($variantId)
-    );
-
+    $variant = ProductVariant::with('product')->where('id', $variantId)->first();
     if (! $variant || $variant->stock <= 0 || !$variant->product->is_available) return;
 
     if (isset($this->cart[$variantId])) {
-        if ($this->cart[$variantId]['qty'] >= $this->cart[$variantId]['max_stock']) return;
+        if ($this->cart[$variantId]['qty'] >= $variant->stock) return;
         $this->cart[$variantId]['qty']++;
     } else {
         $variantDetails = array_filter([$variant->size, $variant->color]);
@@ -82,10 +84,10 @@ $addToCart = function (int $variantId) {
 
         $imagePath = $variant->image_path
             ? $variant->image_path
-            : ($variant->product->product_img ?? null);
+            : ($variant->product->product_img ? $variant->product->product_img : null);
 
         $this->cart[$variantId] = [
-            'id'         => $variant->id,
+            'id' => $variant->id,
             'product_id' => $variant->product_id,
             'name'       => $variant->product->product_name . $variantName,
             'price'      => $variant->price_cents / 100,
@@ -95,8 +97,6 @@ $addToCart = function (int $variantId) {
         ];
     }
     $this->calculateTotal();
-    // ✅ FIX 3: skipRender() prevents Blade re-render; combined with ->persist() this
-    //    means cart actions do zero DB queries and zero template re-renders
     $this->skipRender();
 };
 
@@ -104,7 +104,7 @@ $incrementQty = function (int $variantId) {
     if (isset($this->cart[$variantId]) && $this->cart[$variantId]['qty'] < $this->cart[$variantId]['max_stock']) {
         $this->cart[$variantId]['qty']++;
         $this->calculateTotal();
-        $this->skipRender(); // ✅ no re-render needed
+        $this->skipRender();
     }
 };
 
@@ -113,7 +113,7 @@ $decrementQty = function (int $variantId) {
         if ($this->cart[$variantId]['qty'] > 1) {
             $this->cart[$variantId]['qty']--;
             $this->calculateTotal();
-            $this->skipRender(); // ✅ no re-render needed
+            $this->skipRender();
         } else {
             $this->removeItem($variantId);
         }
@@ -123,7 +123,7 @@ $decrementQty = function (int $variantId) {
 $removeItem = function (int $variantId) {
     unset($this->cart[$variantId]);
     $this->calculateTotal();
-    $this->skipRender(); // ✅ no re-render needed
+    $this->skipRender();
 };
 
 $calculateTotal = function () {
@@ -145,7 +145,7 @@ updated(['discountType' => function () { $this->calculateTotal(); }]);
 $checkout = function () {
     if (empty($this->cart)) return;
     if (empty(trim($this->customer_phone)) || empty(trim($this->customer_name))) return;
-    if (empty($this->selectedEmployee)) return;
+    if (empty($this->selectedEmployee)) return; // 👈 حماية للتأكد من اختيار كاشير
 
     $order = null;
     $invoice = null;
@@ -167,13 +167,12 @@ $checkout = function () {
         ]);
 
         $order = Order::create([
-            'employee_id'       => $this->selectedEmployee,
+            'employee_id'       => $this->selectedEmployee, // 👈 التخزين من الموظف المختار ديناميكياً
             'customer_id'       => $customerId,
             'invoice_id'        => $invoice->id,
             'payment_method'    => $this->payment_method,
             'total_price_cents' => (int) round($this->total * 100),
-            // ✅ FIX 4: was ($invoice->order?->discount_cents / 100 ?? 0) — wrong precedence
-            'discount_cents'    => (int) round((float)$this->discount * 100),
+            'discount_cents'    => (int) round($this->discount * 100),
             'created_at'        => now(),
         ]);
 
@@ -189,7 +188,6 @@ $checkout = function () {
         }
     });
 
-    // ✅ FIX 5: eager load with one query instead of lazy loading chains
     $order->load(['employee', 'customer', 'items.variant']);
 
     $this->lastReceipt = [
@@ -197,11 +195,19 @@ $checkout = function () {
         'date'           => $order->created_at->format('Y-m-d h:i A'),
         'cashier_name'   => $order->employee->name ?? 'الكاشير المختار',
         'customer_name'  => $order->customer->name ?? 'عميل نقدي',
-        'payment_method' => $order->payment_method == 'cash'
-            ? 'نقدي (Cash)'
-            : ($order->payment_method == 'instapay' ? 'إنستاباي (Instapay)' : 'فيزا / كارت (Card)'),
+        'payment_method' => $order->payment_method == 'cash' ? 'نقدي (Cash)' : ($order->payment_method == 'instapay' ? 'إنستاباي (Instapay)' : 'فيزا / كارت (Card)'),
+        'discount'       => number_format($this->discount, 2), // القيمة الحقيقية للخصم قبل التصفير
+        'total'          => number_format($this->total, 2),
+    ];
+    $receiptData = [
+        'order_id'       => $order->id,
+        'date'           => $order->created_at->format('Y-m-d h:i A'),
+        'cashier_name'   => $order->employee->name ?? 'الكاشير المختار', // 👈 هيقرأ الاسم الجديد صح في الـ PDF
+        'customer_name'  => $order->customer->name ?? 'عميل نقدي',
+        'payment_method' => $order->payment_method == 'cash' ? 'نقدي (Cash)' : ($order->payment_method == 'instapay' ? 'إنستاباي (Instapay)' : 'فيزا / كارت (Card)'),
         'discount'       => number_format($this->discount, 2),
         'total'          => number_format($this->total, 2),
+        'items'          => collect($this->cart)->values()->toArray(),
     ];
 
     $this->dispatch('trigger-print-receipt',
@@ -209,13 +215,8 @@ $checkout = function () {
         downloadUrl: route('invoices.download', $invoice->id)
     );
 
-    $this->cart = [];
-    $this->total = 0.0;
-    $this->discount = 0.0;
-    $this->discountType = 'fixed';
-    $this->customer_phone = '';
-    $this->customer_name = '';
-    $this->existing_customer = null;
+    $this->cart = []; $this->total = 0.0; $this->discount = 0.0; $this->discountType = 'fixed';
+    $this->customer_phone = ''; $this->customer_name = ''; $this->existing_customer = null;
     $this->payment_method = 'cash';
 
     session()->flash('message', 'تم تأكيد المبيعات وبدء التحميل! ✓');
@@ -234,15 +235,21 @@ $checkout = function () {
         .cart-scroll::-webkit-scrollbar-thumb { background: #c7c4d8; border-radius: 10px; }
 
         @media screen {
-            #thermal-receipt-template { display: none !important; }
+            #thermal-receipt-template {
+                display: none !important;
+            }
         }
 
         @media print {
-            body > * { display: none !important; }
+            body > * {
+                display: none !important;
+            }
+
             #thermal-receipt-template {
                 display: block !important;
                 position: absolute;
-                left: 0; top: 0;
+                left: 0;
+                top: 0;
                 width: 100% !important;
                 max-width: 80mm !important;
                 padding: 10px !important;
@@ -251,11 +258,24 @@ $checkout = function () {
                 background: white !important;
                 color: black !important;
             }
-            #thermal-receipt-template table { display: table !important; width: 100% !important; }
-            #thermal-receipt-template tr { display: table-row !important; }
+
+            #thermal-receipt-template table {
+                display: table !important;
+                width: 100% !important;
+            }
+            #thermal-receipt-template tr {
+                display: table-row !important;
+            }
             #thermal-receipt-template th,
-            #thermal-receipt-template td { display: table-cell !important; color: black !important; }
-            @page { margin: 0; size: auto; }
+            #thermal-receipt-template td {
+                display: table-cell !important;
+                color: black !important;
+            }
+
+            @page {
+                margin: 0;
+                size: auto;
+            }
         }
     </style>
 
@@ -282,28 +302,17 @@ $checkout = function () {
 
     <main class="flex-1 mt-16 flex flex-row overflow-hidden">
 
-        {{-- ✅ Products panel: wire:ignore.self prevents Livewire from diffing this
-             section on cart-only updates when skipRender() is active --}}
         <section class="w-3/5 flex flex-col bg-[#faf8ff] border-l border-[#c7c4d8] overflow-hidden">
             <div class="p-4 space-y-4 bg-[#faf8ff] shadow-sm z-10">
                 <div class="relative">
                     <span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[#777587] text-xl">search</span>
-                    <input wire:model.live.debounce.300ms="search"
-                           class="w-full bg-[#f2f3ff] border border-[#c7c4d8] rounded-full py-3 pr-12 pl-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#3525cd] transition-all"
-                           placeholder="محرك البحث عن المنتجات (الاسم، SKU، أو الباركود)..."
-                           type="text">
+                    <input wire:model.live.debounce.300ms="search" class="w-full bg-[#f2f3ff] border border-[#c7c4d8] rounded-full py-3 pr-12 pl-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#3525cd] transition-all" placeholder="محرك البحث عن المنتجات (الاسم، SKU، أو الباركود)..." type="text">
                 </div>
 
                 <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                    <button wire:click="$set('selectedCategory', null)"
-                            class="px-6 py-2.5 rounded-full text-sm font-semibold transition-all {{ is_null($selectedCategory) ? 'bg-[#3525cd] text-white shadow-md' : 'bg-[#e2e7ff] text-[#464555] hover:bg-[#dae2fd]' }}">
-                        الكل
-                    </button>
+                    <button wire:click="$set('selectedCategory', null)" class="px-6 py-2.5 rounded-full text-sm font-semibold transition-all {{ is_null($selectedCategory) ? 'bg-[#3525cd] text-white shadow-md' : 'bg-[#e2e7ff] text-[#464555] hover:bg-[#dae2fd]' }}">الكل</button>
                     @foreach($this->categories as $cat)
-                        <button wire:click="$set('selectedCategory', {{ $cat->id }})"
-                                class="px-6 py-2.5 rounded-full text-sm font-semibold transition-all {{ $selectedCategory == $cat->id ? 'bg-[#3525cd] text-white shadow-md' : 'bg-[#e2e7ff] text-[#464555] hover:bg-[#dae2fd]' }}">
-                            {{ $cat->name }}
-                        </button>
+                        <button wire:click="$set('selectedCategory', {{ $cat->id }})" class="px-6 py-2.5 rounded-full text-sm font-semibold transition-all {{ $selectedCategory == $cat->id ? 'bg-[#3525cd] text-white shadow-md' : 'bg-[#e2e7ff] text-[#464555] hover:bg-[#dae2fd]' }}">{{ $cat->name }}</button>
                     @endforeach
                 </div>
             </div>
@@ -318,9 +327,7 @@ $checkout = function () {
 
                     <div class="bg-white rounded-2xl border border-[#c7c4d8] p-4 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
                         <div class="aspect-square rounded-xl bg-[#eaedff] overflow-hidden mb-3 relative border border-gray-50 shadow-sm">
-                            <img src="{{ $mainProductImage }}"
-                                 class="w-full h-full object-cover transition-transform duration-300 transform hover:scale-105"
-                                 alt="{{ $product->product_name }}">
+                            <img src="{{ $mainProductImage }}" class="w-full h-full object-cover transition-transform duration-300 transform hover:scale-105" alt="{{ $product->product_name }}">
                             <span class="absolute top-2 right-2 bg-black/60 text-white text-[11px] px-2.5 py-1 rounded-full backdrop-blur-sm data-font font-medium">
                                 {{ $product->variants->count() }} خيارات
                             </span>
@@ -331,12 +338,7 @@ $checkout = function () {
 
                             <div class="flex flex-col gap-1.5">
                                 @foreach($product->variants as $variant)
-                                    {{-- ✅ FIX 6: wire:loading.attr="disabled" gives instant visual feedback
-                                         while the server round-trip completes --}}
-                                    <button wire:click="addToCart({{ $variant->id }})"
-                                            wire:loading.attr="disabled"
-                                            wire:target="addToCart({{ $variant->id }})"
-                                            class="w-full flex justify-between items-center bg-[#f2f3ff] hover:bg-[#eaedff] focus:bg-[#eaedff] focus:ring-1 focus:ring-[#3525cd] border border-[#c7c4d8] p-2 rounded-xl text-xs font-medium transition group outline-none disabled:opacity-60 disabled:cursor-wait">
+                                    <button wire:click="addToCart({{ $variant->id }})" class="w-full flex justify-between items-center bg-[#f2f3ff] hover:bg-[#eaedff] focus:bg-[#eaedff] focus:ring-1 focus:ring-[#3525cd] border border-[#c7c4d8] p-2 rounded-xl text-xs font-medium transition group outline-none">
                                         <span class="text-gray-800 font-medium">{{ $variant->size }} {{ $variant->color }}</span>
                                         <div class="flex items-center gap-2">
                                             <span class="text-gray-400 text-[11px]">مخزن: {{ $variant->stock }}</span>
@@ -371,6 +373,7 @@ $checkout = function () {
                                     <span class="material-symbols-outlined text-[#3525cd] text-2xl">inventory_2</span>
                                 @endif
                             </div>
+
                             <div class="min-w-0">
                                 <h4 class="font-bold text-xs text-[#131b2e] truncate">{{ $item['name'] }}</h4>
                                 <span class="text-xs font-bold text-[#3525cd] data-font block mt-1">
@@ -381,18 +384,11 @@ $checkout = function () {
 
                         <div class="flex items-center gap-3">
                             <div class="flex items-center bg-[#f2f3ff] rounded-full p-1 border border-[#c7c4d8]">
-                                <button wire:click="decrementQty({{ $id }})"
-                                        wire:loading.attr="disabled"
-                                        wire:target="decrementQty({{ $id }}),incrementQty({{ $id }})"
-                                        class="w-7 h-7 flex items-center justify-center bg-white hover:bg-gray-100 rounded-full font-bold text-sm shadow-sm transition disabled:opacity-50">-</button>
+                                <button wire:click="decrementQty({{ $id }})" class="w-7 h-7 flex items-center justify-center bg-white hover:bg-gray-100 rounded-full font-bold text-sm shadow-sm transition">-</button>
                                 <span class="px-3 font-bold text-sm data-font text-[#131b2e]">{{ $item['qty'] }}</span>
-                                <button wire:click="incrementQty({{ $id }})"
-                                        wire:loading.attr="disabled"
-                                        wire:target="decrementQty({{ $id }}),incrementQty({{ $id }})"
-                                        class="w-7 h-7 flex items-center justify-center bg-white hover:bg-gray-100 rounded-full font-bold text-sm shadow-sm transition disabled:opacity-50">+</button>
+                                <button wire:click="incrementQty({{ $id }})" class="w-7 h-7 flex items-center justify-center bg-white hover:bg-gray-100 rounded-full font-bold text-sm shadow-sm transition">+</button>
                             </div>
-                            <button wire:click="removeItem({{ $id }})"
-                                    class="text-red-500 hover:bg-red-50 p-2 rounded-full transition">
+                            <button wire:click="removeItem({{ $id }})" class="text-red-500 hover:bg-red-50 p-2 rounded-full transition">
                                 <span class="material-symbols-outlined text-base">delete</span>
                             </button>
                         </div>
@@ -413,18 +409,11 @@ $checkout = function () {
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1.5">
                         <label class="text-xs font-bold text-[#464555] mr-1">رقم الهاتف المميز *</label>
-                        <input wire:model.live="customer_phone"
-                               class="w-full bg-white border border-[#c7c4d8] rounded-xl px-4 py-2.5 text-sm font-semibold focus:border-[#3525cd] focus:ring-1 focus:ring-[#3525cd] outline-none transition-all"
-                               placeholder="01xxxxxxxxx"
-                               type="tel">
+                        <input wire:model.blur="customer_phone" class="w-full bg-white border border-[#c7c4d8] rounded-xl px-4 py-2.5 text-sm font-semibold focus:border-[#3525cd] focus:ring-1 focus:ring-[#3525cd] outline-none transition-all" placeholder="01xxxxxxxxx" type="tel">
                     </div>
                     <div class="space-y-1.5">
                         <label class="text-xs font-bold text-[#464555] mr-1">اسم العميل بالكامل *</label>
-                        <input wire:model.live="customer_name"
-                               {{ $existing_customer ? 'disabled' : '' }}
-                               class="w-full border rounded-xl px-4 py-2.5 text-sm font-semibold focus:border-[#3525cd] focus:ring-1 focus:ring-[#3525cd] outline-none transition-all {{ $existing_customer ? 'bg-green-50 text-green-700 font-bold border-green-300' : 'bg-white border-[#c7c4d8]' }}"
-                               placeholder="اكتب اسم العميل هنا..."
-                               type="text">
+                        <input wire:model.live="customer_name" {{ $existing_customer ? 'disabled' : '' }} class="w-full border rounded-xl px-4 py-2.5 text-sm font-semibold focus:border-[#3525cd] focus:ring-1 focus:ring-[#3525cd] outline-none transition-all {{ $existing_customer ? 'bg-green-50 text-green-700 font-bold border-green-300' : 'bg-white border-[#c7c4d8]' }}" placeholder="اكتب اسم العميل هنا..." type="text">
                     </div>
                 </div>
                 @if($existing_customer)
@@ -437,8 +426,7 @@ $checkout = function () {
 
                     <div class="relative">
                         <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">badge</span>
-                        <select wire:model.live="selectedEmployee"
-                                class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white focus:outline-none focus:border-[#4f46e5] transition-all appearance-none cursor-pointer">
+                        <select wire:model.live="selectedEmployee" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white focus:outline-none focus:border-[#4f46e5] transition-all appearance-none cursor-pointer">
                             <option value="" class="text-[#131b2e]">اختر الكاشير...</option>
                             @foreach($this->employees as $emp)
                                 <option value="{{ $emp->id }}" class="text-[#131b2e]">{{ $emp->name }}</option>
@@ -448,26 +436,21 @@ $checkout = function () {
 
                     <div class="relative">
                         <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">sell</span>
-                        <input wire:model.live.debounce.300ms="discount"
-                               class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#4f46e5] transition-all"
-                               placeholder="{{ $discountType === 'percentage' ? 'خصم %' : 'خصم ج.م' }}"
-                               type="number" min="0"
-                               max="{{ $discountType === 'percentage' ? '100' : '' }}">
-                        <button wire:click="$set('discountType', '{{ $discountType === 'percentage' ? 'fixed' : 'percentage' }}')"
-                                class="absolute left-1 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition">
+                        <input wire:model.blur="discount" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white placeholder-white/40 focus:outline-none focus:border-[#4f46e5] transition-all" placeholder="{{ $discountType === 'percentage' ? 'خصم %' : 'خصم ج.م' }}" type="number" min="0" max="{{ $discountType === 'percentage' ? '100' : '' }}">
+                        <button wire:click="$set('discountType', '{{ $discountType === 'percentage' ? 'fixed' : 'percentage' }}')" class="absolute left-1 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition">
                             {{ $discountType === 'percentage' ? '%' : 'ج.م' }}
                         </button>
                     </div>
 
                     <div class="relative">
-                        <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">
-                            {{ $payment_method === 'cash' ? 'payments' : 'credit_card' }}
-                        </span>
-                        <select wire:model.live="payment_method"
-                                class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white focus:outline-none focus:border-[#4f46e5] transition-all appearance-none cursor-pointer">
+            <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">
+                {{ $payment_method === 'cash' ? 'payments' : 'credit_card' }}
+            </span>
+                        <select wire:model.live="payment_method" class="w-full bg-white/10 border border-white/20 rounded-xl py-2.5 pr-10 pl-3 text-xs text-white focus:outline-none focus:border-[#4f46e5] transition-all appearance-none cursor-pointer">
                             <option value="cash" class="text-[#131b2e]">نقدي (Cash)</option>
                             <option value="card" class="text-[#131b2e]">فيزا / كارت (Card)</option>
                             <option value="instapay" class="text-[#131b2e]">Instapay</option>
+
                         </select>
                     </div>
                 </div>
@@ -475,26 +458,18 @@ $checkout = function () {
                 <div class="flex items-center justify-between gap-4 border-t border-white/10 pt-3.5">
                     <div class="text-right flex-shrink-0">
                         <p class="text-xs text-white/50 mb-0.5">الإجمالي المستحق</p>
-                        <p class="text-2xl font-bold data-font text-white leading-none">
-                            {{ number_format($total, 2) }} <span class="text-sm font-normal">ج.م</span>
-                        </p>
+                        <p class="text-2xl font-bold data-font text-white leading-none">{{ number_format($total, 2) }} <span class="text-sm font-normal">ج.م</span></p>
                     </div>
 
                     <button wire:click="checkout"
-                            wire:loading.attr="disabled"
-                            wire:target="checkout"
                             @if(empty($cart) || empty(trim($customer_phone)) || empty(trim($customer_name)) || empty($selectedEmployee)) disabled @endif
                             class="flex-1 bg-[#4f46e5] hover:bg-[#3525cd] disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white py-3.5 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-all shadow-lg font-bold text-sm">
-                        <span wire:loading.remove wire:target="checkout">إتمام الفاتورة وتحميلها</span>
-                        <span wire:loading wire:target="checkout">جاري المعالجة...</span>
-                        <span class="material-symbols-outlined text-xl" wire:loading.remove wire:target="checkout">download</span>
-                        <span class="material-symbols-outlined text-xl animate-spin" wire:loading wire:target="checkout">progress_activity</span>
+                        <span>إتمام الفاتورة وتحميلها</span>
+                        <span class="material-symbols-outlined text-xl">download</span>
                     </button>
                 </div>
-            </div>
-        </section>
+            </div>        </section>
     </main>
-
     <div id="thermal-receipt-template" class="block bg-white text-black p-4 w-[80mm] mx-auto text-sm leading-tight text-right">
         <div class="text-center space-y-1 border-b border-dashed border-black pb-3">
             <h1 class="text-base font-bold tracking-tight">K&H Shoes</h1>
@@ -527,40 +502,34 @@ $checkout = function () {
             </div>
             <div class="flex justify-between text-gray-700">
                 <span>الخصم المطبق:</span>
-                {{-- ✅ FIX 4 applied here too: discount value is already formatted correctly --}}
-                <span class="data-font" id="r-discount">{{ $lastReceipt['discount'] ?? '0.00' }} ج.م</span>
-            </div>
+                <span class="data-font" id="r-discount">{{ $lastReceipt['discount'] ?? '0.00' }} ج.م</span> </div>
             <div class="flex justify-between text-base font-bold pt-1 border-t border-black">
                 <span>الصـافي المستـحق:</span>
                 <span class="data-font" id="r-total">{{ $lastReceipt['total'] ?? '0.00' }} ج.م</span>
             </div>
         </div>
+
     </div>
-
     <script>
-        // ✅ Live clock — pure JS, no Livewire polling
-        (function () {
-            const el = document.getElementById('digital-clock');
-            if (!el) return;
-            setInterval(() => {
-                const now = new Date();
-                el.textContent = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: false });
-            }, 1000);
-        })();
-
         document.addEventListener('livewire:init', () => {
             Livewire.on('trigger-print-receipt', (event) => {
-                const downloadUrl = event.downloadUrl;
+                const downloadUrl = event.downloadUrl; // استلام رابط الـ PDF من الباكيند
+
+                // السحر: تحميل ملف الـ PDF تلقائياً فوراً بدون فتح أي نوافذ أو طباعة حرارية
                 if (downloadUrl) {
-                    const a = document.createElement('a');
-                    a.href = downloadUrl;
-                    a.download = `invoice-${event.receipt.order_id}.pdf`;
-                    a.style.display = 'none';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
+                    const downloadAnchor = document.createElement('a');
+                    downloadAnchor.href = downloadUrl;
+
+                    // تسمية الملف برقم الفاتورة أو الأوردر بشكل ديناميكي
+                    downloadAnchor.download = `invoice-${event.receipt.order_id}.pdf`;
+                    downloadAnchor.style.display = 'none';
+
+                    document.body.appendChild(downloadAnchor);
+                    downloadAnchor.click(); // محاكاة الضغط للتحميل التلقائي الفوري
+                    document.body.removeChild(downloadAnchor);
                 }
             });
         });
     </script>
+
 </div>
