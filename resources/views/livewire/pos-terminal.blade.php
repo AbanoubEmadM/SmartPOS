@@ -392,7 +392,7 @@ $checkout = function () {
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-1.5">
                         <label class="text-xs font-bold text-[#464555] mr-1">رقم الهاتف المميز *</label>
-                        <input wire:model.blur="customer_phone" class="w-full bg-white border border-[#c7c4d8] rounded-xl px-4 py-2.5 text-sm font-semibold focus:border-[#3525cd] focus:ring-1 focus:ring-[#3525cd] outline-none transition-all" placeholder="01xxxxxxxxx" type="tel">
+                        <input wire:model.live.debounce.500ms="customer_phone" class="w-full bg-white border border-[#c7c4d8] rounded-xl px-4 py-2.5 text-sm font-semibold focus:border-[#3525cd] focus:ring-1 focus:ring-[#3525cd] outline-none transition-all" placeholder="01xxxxxxxxx" type="tel">
                     </div>
                     <div class="space-y-1.5">
                         <label class="text-xs font-bold text-[#464555] mr-1">اسم العميل بالكامل *</label>
